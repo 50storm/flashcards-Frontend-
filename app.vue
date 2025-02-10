@@ -61,11 +61,8 @@ onMounted(() => {
     <div class="stack">
       <div v-for="(card, index) in flashcards" :key="index" class="card" :class="{ flipped: flipped[index] }" @click="flipCard(index)">
         <div class="card-inner">
-          <div class="card-front" v-if="!flipped[index]">
-            <p>{{ card.front }}</p>
-          </div>
-          <div class="card-back" v-else>
-            <p>{{ card.back }}</p>
+          <div class="card-face">
+            <p>{{ flipped[index] ? card.back : card.front }}</p>
           </div>
         </div>
         <button @click.stop="removeFlashcard(index)">Remove</button>
@@ -105,7 +102,17 @@ onMounted(() => {
   transition: transform 0.5s;
 }
 .card.flipped {
-  transform: rotateY(180deg);
   background-color: lightgray;
+}
+.card-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+.card-face {
+  text-align: center;
+  font-size: 16px;
 }
 </style>
