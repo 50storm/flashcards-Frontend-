@@ -1,89 +1,83 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 
-// フラッシュカードのデータ
-const flashcards = ref([]);
 const newFront = ref('');
 const newBack = ref('');
+const flashcards = ref([]);
+const flipped = ref([]); // カードの裏表を管理
 
-// ローカルストレージからフラッシュカードを取得
 const loadFlashcards = () => {
   const savedFlashcards = localStorage.getItem('flashcards');
   if (savedFlashcards) {
     flashcards.value = JSON.parse(savedFlashcards);
+    flipped.value = new Array(flashcards.value.length).fill(false);
   }
 };
 
-// フラッシュカードを追加
 const addFlashcard = () => {
   if (newFront.value && newBack.value) {
     flashcards.value.push({ front: newFront.value, back: newBack.value });
+    flipped.value.push(false); // 初期状態は表
     saveFlashcards();
     newFront.value = '';
     newBack.value = '';
   }
 };
 
-// フラッシュカードを削除
 const removeFlashcard = (index) => {
   flashcards.value.splice(index, 1);
+  flipped.value.splice(index, 1);
   saveFlashcards();
 };
 
-// フラッシュカードをシャッフル
 const shuffleFlashcards = () => {
   flashcards.value = flashcards.value.sort(() => Math.random() - 0.5);
   saveFlashcards();
 };
 
-// ローカルストレージに保存
+const flipCard = (index) => {
+  flipped.value[index] = !flipped.value[index];
+};
+
 const saveFlashcards = () => {
   localStorage.setItem('flashcards', JSON.stringify(flashcards.value));
 };
 
-// マウント時にデータをロード
 onMounted(loadFlashcards);
 </script>
 
 <template>
-  <div class="container">
+  <div>
     <h1>Flashcards</h1>
-    <div class="input-group">
-      <input v-model="newFront" placeholder="Front" />
-      <input v-model="newBack" placeholder="Back" />
-      <button @click="addFlashcard">Add</button>
-    </div>
+    <input v-model="newFront" placeholder="Front" />
+    <input v-model="newBack" placeholder="Back" />
+    <button @click="addFlashcard">Add</button>
     <button @click="shuffleFlashcards">Shuffle</button>
     <ul>
-      <li v-for="(card, index) in flashcards" :key="index">
-        <strong>{{ card.front }}</strong> - {{ card.back }}
-        <button @click="removeFlashcard(index)">Remove</button>
+      <li v-for="(card, index) in flashcards" :key="index" @click="flipCard(index)" class="flashcard" :class="{ flipped: flipped[index] }">
+        <div class="card-content">
+          <div v-if="!flipped[index]">{{ card.front }}</div>
+          <div v-else>{{ card.back }}</div>
+        </div>
+        <button @click.stop="removeFlashcard(index)">Remove</button>
       </li>
     </ul>
   </div>
 </template>
 
 <style scoped>
-.container {
-  max-width: 600px;
-  margin: auto;
-  text-align: center;
-}
-
-.input-group {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-input {
-  padding: 5px;
-  border: 1px solid #ccc;
-}
-
-button {
-  padding: 5px 10px;
+.flashcard {
   cursor: pointer;
+  display: inline-block;
+  padding: 10px;
+  border: 1px solid #ccc;
+  margin: 5px;
+  text-align: center;
+  width: 150px;
+  height: 100px;
+  background-color: white;
+}
+.flipped {
+  background-color: lightgray;
 }
 </style>
