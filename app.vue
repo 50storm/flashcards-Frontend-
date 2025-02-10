@@ -31,7 +31,8 @@ const removeFlashcard = (index) => {
 };
 
 const shuffleFlashcards = () => {
-  flashcards.value = flashcards.value.sort(() => Math.random() - 0.5);
+  flashcards.value = [...flashcards.value].sort(() => Math.random() - 0.5);
+  flipped.value = new Array(flashcards.value.length).fill(false);
   saveFlashcards();
 };
 
@@ -43,41 +44,68 @@ const saveFlashcards = () => {
   localStorage.setItem('flashcards', JSON.stringify(flashcards.value));
 };
 
-onMounted(loadFlashcards);
+onMounted(() => {
+  loadFlashcards();
+});
 </script>
 
 <template>
-  <div>
-    <h1>Flashcards</h1>
-    <input v-model="newFront" placeholder="Front" />
-    <input v-model="newBack" placeholder="Back" />
-    <button @click="addFlashcard">Add</button>
-    <button @click="shuffleFlashcards">Shuffle</button>
-    <ul>
-      <li v-for="(card, index) in flashcards" :key="index" @click="flipCard(index)" class="flashcard" :class="{ flipped: flipped[index] }">
-        <div class="card-content">
-          <div v-if="!flipped[index]">{{ card.front }}</div>
-          <div v-else>{{ card.back }}</div>
+  <div class="container">
+    <h1>Flashcard Stack</h1>
+    <div class="input-group">
+      <input v-model="newFront" placeholder="Front" />
+      <input v-model="newBack" placeholder="Back" />
+      <button @click="addFlashcard">Add</button>
+      <button @click="shuffleFlashcards">Shuffle</button>
+    </div>
+    <div class="stack">
+      <div v-for="(card, index) in flashcards" :key="index" class="card" :class="{ flipped: flipped[index] }" @click="flipCard(index)">
+        <div class="card-inner">
+          <div class="card-front" v-if="!flipped[index]">
+            <p>{{ card.front }}</p>
+          </div>
+          <div class="card-back" v-else>
+            <p>{{ card.back }}</p>
+          </div>
         </div>
         <button @click.stop="removeFlashcard(index)">Remove</button>
-      </li>
-    </ul>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.flashcard {
-  cursor: pointer;
-  display: inline-block;
-  padding: 10px;
-  border: 1px solid #ccc;
-  margin: 5px;
+.container {
   text-align: center;
-  width: 150px;
-  height: 100px;
-  background-color: white;
+  max-width: 400px;
+  margin: auto;
 }
-.flipped {
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.stack {
+  position: relative;
+  width: 200px;
+  height: 120px;
+  margin: auto;
+}
+.card {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  transition: transform 0.5s;
+}
+.card.flipped {
+  transform: rotateY(180deg);
   background-color: lightgray;
 }
 </style>
