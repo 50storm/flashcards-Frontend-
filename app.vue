@@ -9,13 +9,22 @@ const newCardSet = ref({
 });
 const newJapanese = ref('');
 const newEnglish = ref('');
+const flippedCards = ref([]); // 各カードが裏返し状態かどうかを管理
 
 // ローカルストレージからカードセットをロード
 const loadCardSets = () => {
   const savedCardSets = localStorage.getItem('cardSets');
   if (savedCardSets) {
     cardSets.value = JSON.parse(savedCardSets);
+    initializeFlippedCards();
   }
+};
+
+// カードの裏返し状態を初期化
+const initializeFlippedCards = () => {
+  flippedCards.value = cardSets.value.map(set =>
+    set.cards.map(() => false)
+  );
 };
 
 // 新しいカードをセット内に追加
@@ -39,6 +48,7 @@ const addCardSet = () => {
     saveCardSets();
     newCardSet.value.name = '';
     newCardSet.value.cards = [];
+    initializeFlippedCards();
   } else {
     alert('カードセット名と単語を入力してください！');
   }
@@ -47,7 +57,13 @@ const addCardSet = () => {
 // カードセットを削除
 const removeCardSet = (index) => {
   cardSets.value.splice(index, 1);
+  flippedCards.value.splice(index, 1);
   saveCardSets();
+};
+
+// カードを裏返す
+const flipCard = (setIndex, cardIndex) => {
+  flippedCards.value[setIndex][cardIndex] = !flippedCards.value[setIndex][cardIndex];
 };
 
 // カードセットを保存
@@ -91,15 +107,25 @@ onMounted(() => {
     <div class="card-sets">
       <h2>登録されたカードセット</h2>
       <ul>
-        <li v-for="(set, index) in cardSets" :key="index" class="card-set">
+        <li v-for="(set, setIndex) in cardSets" :key="setIndex" class="card-set">
           <h3>{{ set.name }}</h3>
           <ul>
             <li v-for="(card, cardIndex) in set.cards" :key="cardIndex" class="flashcard">
-              <p><strong>日本語:</strong> {{ card.japanese }}</p>
-              <p><strong>英語:</strong> {{ card.english }}</p>
+              <!-- カード -->
+              <div
+                class="card"
+                @click="flipCard(setIndex, cardIndex)"
+              >
+                <p v-if="!flippedCards[setIndex][cardIndex]">
+                  {{ card.japanese }}
+                </p>
+                <p v-else>
+                  {{ card.english }}
+                </p>
+              </div>
             </li>
           </ul>
-          <button @click="removeCardSet(index)" class="remove-set-button">セットを削除</button>
+          <button @click="removeCardSet(setIndex)" class="remove-set-button">セットを削除</button>
         </li>
       </ul>
     </div>
@@ -177,6 +203,20 @@ onMounted(() => {
 
 .flashcard {
   margin: 5px 0;
+}
+
+.card {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 10px;
+  cursor: pointer;
+  background-color: #f9f9f9;
+  text-align: center;
+  transition: background-color 0.3s;
+}
+
+.card:hover {
+  background-color: #e0e0e0;
 }
 
 .remove-set-button {
