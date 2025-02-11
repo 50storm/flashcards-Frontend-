@@ -11,13 +11,34 @@ const newJapanese = ref('');
 const newEnglish = ref('');
 const flippedCards = ref([]); // 各カードが裏返し状態かどうかを管理
 
+// デフォルトのカードセット
+const defaultCardSet = {
+  name: 'ビジネス英会話',
+  cards: [
+    { japanese: 'お世話になっております', english: 'Thank you for your continued support' },
+    { japanese: 'よろしくお願いします', english: 'I look forward to working with you' },
+    { japanese: 'お時間をいただきありがとうございます', english: 'Thank you for your time' },
+    { japanese: '確認させていただきます', english: 'Let me confirm that' },
+    { japanese: '折り返しご連絡いたします', english: 'I will get back to you' },
+    { japanese: 'お手数をおかけしますが', english: 'I apologize for the inconvenience' },
+    { japanese: 'お会いできるのを楽しみにしています', english: 'I look forward to meeting you' },
+    { japanese: '進捗状況はいかがですか？', english: 'How is the progress going?' },
+    { japanese: '資料を共有いただけますか？', english: 'Could you share the materials?' },
+    { japanese: '何か質問はございますか？', english: 'Do you have any questions?' },
+  ],
+};
+
 // ローカルストレージからカードセットをロード
 const loadCardSets = () => {
   const savedCardSets = localStorage.getItem('cardSets');
   if (savedCardSets) {
     cardSets.value = JSON.parse(savedCardSets);
-    initializeFlippedCards();
+  } else {
+    // 初回ロード時にデフォルトのカードセットを追加
+    cardSets.value.push(defaultCardSet);
+    saveCardSets();
   }
+  initializeFlippedCards();
 };
 
 // カードの裏返し状態を初期化
