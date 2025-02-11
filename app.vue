@@ -1,48 +1,63 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 
-// テキストの状態を管理
-const japaneseText = ref('');
-const englishText = ref('');
-const flashcards = ref([]);
+// 状態管理
+const cardSets = ref([]); // カードセットのリスト
+const newCardSet = ref({
+  name: '',
+  cards: [], // 各セット内の単語リスト
+});
+const newJapanese = ref('');
+const newEnglish = ref('');
 
-// ローカルストレージからフラッシュカードをロード
-const loadFlashcards = () => {
-  const savedFlashcards = localStorage.getItem('flashcards');
-  if (savedFlashcards) {
-    flashcards.value = JSON.parse(savedFlashcards);
+// ローカルストレージからカードセットをロード
+const loadCardSets = () => {
+  const savedCardSets = localStorage.getItem('cardSets');
+  if (savedCardSets) {
+    cardSets.value = JSON.parse(savedCardSets);
   }
 };
 
-// 新しいフラッシュカードを追加
-const addFlashcard = () => {
-  if (japaneseText.value.trim() && englishText.value.trim()) {
-    flashcards.value.push({
-      japanese: japaneseText.value,
-      english: englishText.value,
+// 新しいカードをセット内に追加
+const addCardToSet = () => {
+  if (newJapanese.value.trim() && newEnglish.value.trim()) {
+    newCardSet.value.cards.push({
+      japanese: newJapanese.value,
+      english: newEnglish.value,
     });
-    saveFlashcards();
-    japaneseText.value = '';
-    englishText.value = '';
+    newJapanese.value = '';
+    newEnglish.value = '';
   } else {
     alert('日本語と英語を両方入力してください！');
   }
 };
 
-// フラッシュカードを削除
-const removeFlashcard = (index) => {
-  flashcards.value.splice(index, 1);
-  saveFlashcards();
+// 新しいカードセットを登録
+const addCardSet = () => {
+  if (newCardSet.value.name.trim() && newCardSet.value.cards.length > 0) {
+    cardSets.value.push({ ...newCardSet.value });
+    saveCardSets();
+    newCardSet.value.name = '';
+    newCardSet.value.cards = [];
+  } else {
+    alert('カードセット名と単語を入力してください！');
+  }
 };
 
-// フラッシュカードを保存
-const saveFlashcards = () => {
-  localStorage.setItem('flashcards', JSON.stringify(flashcards.value));
+// カードセットを削除
+const removeCardSet = (index) => {
+  cardSets.value.splice(index, 1);
+  saveCardSets();
+};
+
+// カードセットを保存
+const saveCardSets = () => {
+  localStorage.setItem('cardSets', JSON.stringify(cardSets.value));
 };
 
 // 初期化
 onMounted(() => {
-  loadFlashcards();
+  loadCardSets();
 });
 </script>
 
@@ -55,32 +70,36 @@ onMounted(() => {
       <div class="profile-icon">👤</div>
     </header>
 
-    <!-- Content Sections -->
-    <div class="content">
-      <!-- 日本語入力 -->
-      <div class="section">
-        <label for="japanese">日本語</label>
-        <textarea id="japanese" v-model="japaneseText" class="textarea" placeholder="単語を入力"></textarea>
+    <!-- 新しいカードセットの作成 -->
+    <div class="new-card-set">
+      <input v-model="newCardSet.name" class="input" placeholder="カードセット名を入力" />
+
+      <div class="add-card">
+        <label>日本語</label>
+        <textarea v-model="newJapanese" class="textarea" placeholder="単語を入力"></textarea>
+
+        <label>英語</label>
+        <textarea v-model="newEnglish" class="textarea" placeholder="単語を入力"></textarea>
+
+        <button @click="addCardToSet" class="add-card-button">単語を追加</button>
       </div>
 
-      <!-- 英語入力 -->
-      <div class="section">
-        <label for="english">英語</label>
-        <textarea id="english" v-model="englishText" class="textarea" placeholder="単語を入力"></textarea>
-      </div>
-
-      <!-- 登録ボタン -->
-      <button class="add-button" @click="addFlashcard">単語を登録</button>
+      <button @click="addCardSet" class="add-set-button">カードセットを登録</button>
     </div>
 
-    <!-- Flashcard List -->
-    <div class="flashcards">
-      <h2>登録された単語</h2>
+    <!-- 登録されたカードセット -->
+    <div class="card-sets">
+      <h2>登録されたカードセット</h2>
       <ul>
-        <li v-for="(card, index) in flashcards" :key="index" class="flashcard">
-          <p><strong>日本語:</strong> {{ card.japanese }}</p>
-          <p><strong>英語:</strong> {{ card.english }}</p>
-          <button @click="removeFlashcard(index)">削除</button>
+        <li v-for="(set, index) in cardSets" :key="index" class="card-set">
+          <h3>{{ set.name }}</h3>
+          <ul>
+            <li v-for="(card, cardIndex) in set.cards" :key="cardIndex" class="flashcard">
+              <p><strong>日本語:</strong> {{ card.japanese }}</p>
+              <p><strong>英語:</strong> {{ card.english }}</p>
+            </li>
+          </ul>
+          <button @click="removeCardSet(index)" class="remove-set-button">セットを削除</button>
         </li>
       </ul>
     </div>
@@ -104,17 +123,20 @@ onMounted(() => {
   border-bottom: 1px solid #ccc;
 }
 
-.content {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.new-card-set {
   margin: 20px 0;
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+.input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.add-card {
+  margin-bottom: 20px;
 }
 
 .textarea {
@@ -126,31 +148,38 @@ onMounted(() => {
   resize: none;
 }
 
-.add-button {
+.add-card-button,
+.add-set-button {
   padding: 10px;
   background-color: #007bff;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  margin-top: 10px;
 }
 
-.add-button:hover {
+.add-card-button:hover,
+.add-set-button:hover {
   background-color: #0056b3;
 }
 
-.flashcards {
+.card-sets {
   margin-top: 20px;
 }
 
-.flashcard {
+.card-set {
   border: 1px solid #ccc;
   border-radius: 5px;
   padding: 10px;
   margin-bottom: 10px;
 }
 
-.flashcard button {
+.flashcard {
+  margin: 5px 0;
+}
+
+.remove-set-button {
   padding: 5px 10px;
   background-color: red;
   color: white;
@@ -159,7 +188,7 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.flashcard button:hover {
+.remove-set-button:hover {
   background-color: darkred;
 }
 </style>
