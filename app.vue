@@ -163,7 +163,6 @@ watchEffect(() => {
   console.log('現在のカードセット:', cardSets.value);
 });
 </script>
-
 <template>
   <div class="container">
     <!-- カードセット一覧画面 -->
@@ -178,10 +177,21 @@ watchEffect(() => {
       </div>
 
       <ul>
-        <li v-for="(set, index) in cardSets" :key="index">
-          <h3>{{ set?.name || '名前なし' }}</h3>
-          <button @click="playCardSet(index)">遊ぶ</button>
-          <button @click="deleteCardSet(index)">削除</button>
+        <li v-for="(set, index) in cardSets" :key="index" class="card-set">
+          <div class="card-set-header">
+            <h3>{{ set?.name || '名前なし' }}</h3>
+            <div>
+              <button @click="playCardSet(index)">遊ぶ</button>
+              <button @click="deleteCardSet(index)">削除</button>
+            </div>
+          </div>
+
+          <!-- カードの一覧 -->
+          <ul class="card-list">
+            <li v-for="(card, cardIndex) in set.cards" :key="cardIndex" class="card-item">
+              <p>{{ card.japanese }} - {{ card.english }}</p>
+            </li>
+          </ul>
         </li>
       </ul>
     </div>
@@ -220,54 +230,33 @@ watchEffect(() => {
   text-align: center;
 }
 
-.card-container {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.card {
-  width: 300px;
-  height: 200px;
+.card-set {
+  margin: 10px 0;
+  padding: 10px;
   border: 1px solid #ccc;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-size: 18px;
-  cursor: pointer;
-  transition: transform 0.3s, background-color 0.3s;
-  background-color: #f9f9f9;
-}
-
-.card:hover {
-  background-color: #e0e0e0;
-}
-
-.navigation-button {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: #007bff;
-  color: white;
-  border: none;
   border-radius: 5px;
-  padding: 10px 20px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s;
+  text-align: left;
+  width: 100%;
+  max-width: 600px;
 }
 
-.navigation-button:hover {
-  background-color: #0056b3;
+.card-set-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.navigation-button.prev {
-  left: -70px;
+.card-list {
+  margin-top: 10px;
+  list-style: none;
+  padding-left: 0;
 }
 
-.navigation-button.next {
-  right: -70px;
+.card-item {
+  background: #f9f9f9;
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 14px;
 }
 </style>
