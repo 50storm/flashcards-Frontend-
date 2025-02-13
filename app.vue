@@ -48,9 +48,11 @@ const saveCardSets = () => {
 // 新しいカードセットを追加
 const addCardSet = () => {
   if (newCardSetName.value.trim()) {
+    const newSetIndex = cardSets.value.length;
     cardSets.value.push({ name: newCardSetName.value, cards: [] });
     newCardSetName.value = '';
     saveCardSets();
+    playCardSet(newSetIndex); // 新しいカードセットを自動的に選択
   } else {
     alert('カードセット名を入力してください！');
   }
@@ -163,6 +165,7 @@ watchEffect(() => {
   console.log('現在のカードセット:', cardSets.value);
 });
 </script>
+
 <template>
   <div class="container">
     <!-- カードセット一覧画面 -->
@@ -212,9 +215,16 @@ watchEffect(() => {
         </div>
         <button @click="nextCard" class="navigation-button next styled-button">次へ</button>
       </div>
+
+      <div class="form">
+        <input v-model="newJapanese" placeholder="日本語" />
+        <input v-model="newEnglish" placeholder="英語" />
+        <button @click="addNewCard" class="styled-button">カードを追加</button>
+      </div>
     </div>
   </div>
 </template>
+
 
 <style scoped>
 .container {
