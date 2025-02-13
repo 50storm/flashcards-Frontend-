@@ -225,13 +225,13 @@ watchEffect(() => {
   </div>
 </template>
 
-
 <style scoped>
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
   font-family: Arial, sans-serif;
+  margin-top: 20px;
 }
 
 .header {
@@ -273,7 +273,9 @@ watchEffect(() => {
 .card-container {
   display: flex;
   align-items: center;
+  justify-content: center; /* 中央揃え */
   position: relative;
+  margin-top: 20px;
 }
 
 .card {
@@ -289,10 +291,71 @@ watchEffect(() => {
   cursor: pointer;
   transition: transform 0.3s, background-color 0.3s;
   background-color: #f9f9f9;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .card:hover {
   background-color: #e0e0e0;
+}
+
+/* ナビゲーションボタンの位置調整 */
+.navigation-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #6a11cb;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.navigation-button.prev {
+  left: -100px; /* 左側の位置調整 */
+}
+
+.navigation-button.next {
+  right: -100px; /* 右側の位置調整 */
+}
+
+.navigation-button:hover {
+  background-color: #0056b3;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.add-card-form {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.add-card-form input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  width: 150px;
+}
+
+.add-card-form button {
+  background-color: #6a11cb;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.add-card-form button:hover {
+  background-color: #0056b3;
 }
 
 /* ボタンのスタイル */
@@ -332,23 +395,5 @@ watchEffect(() => {
 
 .styled-button.back {
   background: linear-gradient(45deg, #007bff, #0056b3);
-}
-
-.navigation-button {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: transparent;
-  border: none;
-  color: white;
-  font-weight: bold;
-}
-
-.navigation-button.prev {
-  left: -70px;
-}
-
-.navigation-button.next {
-  right: -70px;
 }
 </style>
