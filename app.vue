@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watchEffect } from 'vue';
 
 // 状態管理
 const cardSets = ref([]); // カードセットのリスト
@@ -67,7 +67,7 @@ const deleteCardSet = (index) => {
 // 新しいカードを追加
 const addNewCard = () => {
   if (newJapanese.value.trim() && newEnglish.value.trim()) {
-    cardSets.value[currentSetIndex.value].cards.push({
+    cardSets.value[currentSetIndex.value]?.cards.push({
       japanese: newJapanese.value,
       english: newEnglish.value,
     });
@@ -82,7 +82,7 @@ const addNewCard = () => {
 // カードの削除
 const deleteCard = (index) => {
   if (confirm('このカードを削除してもよろしいですか？')) {
-    cardSets.value[currentSetIndex.value].cards.splice(index, 1);
+    cardSets.value[currentSetIndex.value]?.cards.splice(index, 1);
     saveCardSets();
   }
 };
@@ -90,14 +90,14 @@ const deleteCard = (index) => {
 // カードの編集を開始
 const startEditCard = (index) => {
   editingCardIndex.value = index;
-  editJapanese.value = cardSets.value[currentSetIndex.value].cards[index].japanese;
-  editEnglish.value = cardSets.value[currentSetIndex.value].cards[index].english;
+  editJapanese.value = cardSets.value[currentSetIndex.value]?.cards[index].japanese;
+  editEnglish.value = cardSets.value[currentSetIndex.value]?.cards[index].english;
 };
 
 // 編集を保存
 const saveEditCard = () => {
   if (editJapanese.value.trim() && editEnglish.value.trim()) {
-    const card = cardSets.value[currentSetIndex.value].cards[editingCardIndex.value];
+    const card = cardSets.value[currentSetIndex.value]?.cards[editingCardIndex.value];
     card.japanese = editJapanese.value;
     card.english = editEnglish.value;
     editingCardIndex.value = null;
@@ -127,7 +127,7 @@ const backToList = () => {
 // 次のカードに進む
 const nextCard = () => {
   isFlipped.value = false;
-  if (currentCardIndex.value < cardSets.value[currentSetIndex.value].cards.length - 1) {
+  if (currentCardIndex.value < cardSets.value[currentSetIndex.value]?.cards.length - 1) {
     currentCardIndex.value++;
   } else {
     currentCardIndex.value = 0; // 最初のカードに戻る
@@ -140,7 +140,7 @@ const prevCard = () => {
   if (currentCardIndex.value > 0) {
     currentCardIndex.value--;
   } else {
-    currentCardIndex.value = cardSets.value[currentSetIndex.value].cards.length - 1; // 最後のカードに戻る
+    currentCardIndex.value = cardSets.value[currentSetIndex.value]?.cards.length - 1; // 最後のカードに戻る
   }
 };
 
@@ -151,7 +151,16 @@ const flipCard = () => {
 
 // 初期化
 onMounted(() => {
-  loadCardSets();
+  try {
+    loadCardSets();
+  } catch (error) {
+    console.error('カードセットのロード中にエラーが発生しました:', error);
+  }
+});
+
+// デバッグ用
+watchEffect(() => {
+  console.log('現在のカードセット:', cardSets.value);
 });
 </script>
 
@@ -170,7 +179,7 @@ onMounted(() => {
 
       <ul>
         <li v-for="(set, index) in cardSets" :key="index">
-          <h3>{{ set.name }}</h3>
+          <h3>{{ set?.name || '名前なし' }}</h3>
           <button @click="playCardSet(index)">遊ぶ</button>
           <button @click="deleteCardSet(index)">削除</button>
         </li>
@@ -184,41 +193,18 @@ onMounted(() => {
         <button @click="backToList">一覧に戻る</button>
       </header>
 
-      <div class="form">
-        <div v-if="editingCardIndex === null">
-          <input v-model="newJapanese" placeholder="日本語" />
-          <input v-model="newEnglish" placeholder="英語" />
-          <button @click="addNewCard">カードを追加</button>
+      <!-- カードとナビゲーション -->
+      <div class="card-container">
+        <button @click="prevCard" class="navigation-button prev">前へ</button>
+        <div class="card" @click="flipCard">
+          <p v-if="!isFlipped">{{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.japanese }}</p>
+          <p v-else>{{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.english }}</p>
         </div>
-        <div v-else>
-          <input v-model="editJapanese" placeholder="日本語" />
-          <input v-model="editEnglish" placeholder="英語" />
-          <button @click="saveEditCard">保存</button>
-          <button @click="cancelEdit">キャンセル</button>
-        </div>
-      </div>
-
-      <ul>
-        <li v-for="(card, index) in cardSets[currentSetIndex].cards" :key="index">
-          {{ card.japanese }} - {{ card.english }}
-          <button @click="startEditCard(index)">編集</button>
-          <button @click="deleteCard(index)">削除</button>
-        </li>
-      </ul>
-
-      <div class="card" @click="flipCard">
-        <p v-if="!isFlipped">{{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.japanese }}</p>
-        <p v-else>{{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.english }}</p>
-      </div>
-
-      <div class="navigation">
-        <button @click="prevCard">前へ</button>
-        <button @click="nextCard">次へ</button>
+        <button @click="nextCard" class="navigation-button next">次へ</button>
       </div>
     </div>
   </div>
 </template>
-
 
 <style scoped>
 .container {
@@ -228,11 +214,16 @@ onMounted(() => {
   font-family: Arial, sans-serif;
 }
 
-/* 共通スタイル */
 .header {
   margin-bottom: 20px;
   font-size: 24px;
   text-align: center;
+}
+
+.card-container {
+  display: flex;
+  align-items: center;
+  position: relative;
 }
 
 .card {
@@ -254,51 +245,29 @@ onMounted(() => {
   background-color: #e0e0e0;
 }
 
-.navigation {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-button {
-  padding: 10px 20px;
-  font-size: 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+.navigation-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   background-color: #007bff;
   color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 16px;
   transition: background-color 0.3s;
 }
 
-button:hover {
+.navigation-button:hover {
   background-color: #0056b3;
 }
 
-.back-button {
-  margin-top: 10px;
+.navigation-button.prev {
+  left: -70px;
 }
 
-.card-set {
-  margin: 10px 0;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  text-align: center;
-}
-
-.play-button {
-  padding: 10px 20px;
-  font-size: 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  background-color: #007bff;
-  color: white;
-  transition: background-color 0.3s;
-}
-
-.play-button:hover {
-  background-color: #0056b3;
+.navigation-button.next {
+  right: -70px;
 }
 </style>
