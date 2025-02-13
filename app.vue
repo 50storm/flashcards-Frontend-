@@ -173,16 +173,16 @@ watchEffect(() => {
 
       <div class="form">
         <input v-model="newCardSetName" placeholder="新しいカードセット名" />
-        <button @click="addCardSet">カードセットを追加</button>
+        <button @click="addCardSet" class="styled-button">カードセットを追加</button>
       </div>
 
       <ul>
         <li v-for="(set, index) in cardSets" :key="index" class="card-set">
           <div class="card-set-header">
             <h3>{{ set?.name || '名前なし' }}</h3>
-            <div>
-              <button @click="playCardSet(index)">遊ぶ</button>
-              <button @click="deleteCardSet(index)">削除</button>
+            <div class="button-group">
+              <button @click="playCardSet(index)" class="styled-button play">遊ぶ</button>
+              <button @click="deleteCardSet(index)" class="styled-button delete">削除</button>
             </div>
           </div>
 
@@ -200,17 +200,17 @@ watchEffect(() => {
     <div v-else>
       <header class="header">
         <h1>{{ cardSets[currentSetIndex]?.name || 'カードセット' }}</h1>
-        <button @click="backToList">一覧に戻る</button>
+        <button @click="backToList" class="styled-button back">一覧に戻る</button>
       </header>
 
       <!-- カードとナビゲーション -->
       <div class="card-container">
-        <button @click="prevCard" class="navigation-button prev">前へ</button>
+        <button @click="prevCard" class="navigation-button prev styled-button">前へ</button>
         <div class="card" @click="flipCard">
           <p v-if="!isFlipped">{{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.japanese }}</p>
           <p v-else>{{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.english }}</p>
         </div>
-        <button @click="nextCard" class="navigation-button next">次へ</button>
+        <button @click="nextCard" class="navigation-button next styled-button">次へ</button>
       </div>
     </div>
   </div>
@@ -258,5 +258,87 @@ watchEffect(() => {
   padding: 10px;
   border-radius: 5px;
   font-size: 14px;
+}
+
+.card-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.card {
+  width: 300px;
+  height: 200px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.3s, background-color 0.3s;
+  background-color: #f9f9f9;
+}
+
+.card:hover {
+  background-color: #e0e0e0;
+}
+
+/* ボタンのスタイル */
+.styled-button {
+  display: inline-block;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.styled-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.styled-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* ボタンのバリエーション */
+.styled-button.play {
+  background: linear-gradient(45deg, #28a745, #218838);
+}
+
+.styled-button.delete {
+  background: linear-gradient(45deg, #dc3545, #c82333);
+}
+
+.styled-button.back {
+  background: linear-gradient(45deg, #007bff, #0056b3);
+}
+
+.navigation-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: transparent;
+  border: none;
+  color: white;
+  font-weight: bold;
+}
+
+.navigation-button.prev {
+  left: -70px;
+}
+
+.navigation-button.next {
+  right: -70px;
 }
 </style>
