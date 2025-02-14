@@ -217,10 +217,17 @@ watchEffect(() => {
       </div>
 
       <div class="form">
-        <input v-model="newJapanese" placeholder="日本語" />
-        <input v-model="newEnglish" placeholder="英語" />
-        <button @click="addNewCard" class="styled-button">カードを追加</button>
+
+        <div>
+          <textarea v-model="newJapanese" placeholder="日本語"></textarea>
+          <textarea v-model="newEnglish" placeholder="英語"></textarea>
+        </div>
+        <!-- newJapanese と newEnglishの下にボタンを移動 -->
+        <div>
+          <button @click="addNewCard" class="styled-button">カードを追加</button>
+        </div>
       </div>
+
     </div>
   </div>
 </template>
@@ -396,4 +403,53 @@ watchEffect(() => {
 .styled-button.back {
   background: linear-gradient(45deg, #007bff, #0056b3);
 }
+.form {
+  display: flex;
+  flex-direction: column; /* 縦方向に要素を並べる */
+  align-items: center; /* 中央揃え */
+  gap: 15px; /* 要素間の隙間 */
+  margin-top: 20px;
+}
+
+textarea {
+  width: 250px; /* 幅を調整 */
+  height: 100px; /* 高さを調整 */
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+}
+
+.styled-button {
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.styled-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.styled-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
 </style>
