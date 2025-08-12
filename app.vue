@@ -175,7 +175,7 @@ watchEffect(() => {
       </header>
 
       <div class="form">
-        <input v-model="newCardSetName" placeholder="新しいカードセット名" />
+        <input v-model="newCardSetName" class="card-set-name-input" placeholder="新しいカードセット名" />
         <button @click="addCardSet" class="styled-button">カードセットを追加</button>
       </div>
 
@@ -450,6 +450,23 @@ textarea:focus {
 .styled-button:active {
   transform: translateY(0);
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.card-set-name-input {
+  width: 100%; /* Allow the input to take up full width of its container */
+  max-width: 600px; /* Limit the maximum width */
+  padding: 12px; /* Add padding for better spacing */
+  font-size: 16px; /* Font size for readability */
+  border: 1px solid #ccc; /* Light border */
+  border-radius: 8px; /* Rounded corners */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  transition: all 0.3s ease; /* Smooth transition for focus */
+}
+
+.card-set-name-input:focus {
+  outline: none; /* Remove default focus outline */
+  border-color: #007bff; /* Change border color on focus */
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2); /* Light shadow for focus effect */
 }
 
 </style>
