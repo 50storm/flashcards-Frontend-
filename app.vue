@@ -238,14 +238,12 @@ watchEffect(() => {
 
 <template>
   <div class="container">
-              
-    <header class="header">
-      <p>ユーザーID: {{ userId }}</p>
-    </header>
+
     <!-- カードセット一覧画面 -->
     <div v-if="currentSetIndex === null">
       <header class="header">
         <h1>カードセット一覧</h1>
+        <p>ユーザーID: {{ userId }}</p>
       </header>
 
       <div class="form">
