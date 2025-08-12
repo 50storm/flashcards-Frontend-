@@ -151,6 +151,35 @@ const flipCard = () => {
   isFlipped.value = !isFlipped.value;
 };
 
+// カードセットをJSONとしてエクスポート
+const exportCardSetsAsJson = () => {
+  // cardSetsをJSON文字列に変換
+  // 第2引数はインデントのスペース数 (ここでは2スペースのインデントを使用)
+  const data = JSON.stringify(cardSets.value, null, 2);
+
+  // Blobオブジェクトを作成し、JSONデータをバイナリ形式で格納
+  // MIMEタイプは'application/json'を指定
+  const blob = new Blob([data], { type: 'application/json' });
+
+  // ダウンロード用の一時的なリンク要素を作成
+  const link = document.createElement('a');
+  
+  // Blob URLをリンクのhrefに設定
+  link.href = URL.createObjectURL(blob);
+
+  // ダウンロードするファイル名を指定
+  link.download = 'cardSets.json'; // ここではファイル名を 'cardSets.json' としている
+
+  // リンク要素をDOMに一時的に追加
+  document.body.appendChild(link);
+
+  // リンクをクリックしてダウンロードを実行
+  link.click();
+
+  // ダウンロード後にリンク要素をDOMから削除
+  document.body.removeChild(link);
+};
+
 // 初期化
 onMounted(() => {
   try {
@@ -177,6 +206,8 @@ watchEffect(() => {
       <div class="form">
         <input v-model="newCardSetName" class="card-set-name-input" placeholder="新しいカードセット名" />
         <button @click="addCardSet" class="styled-button">カードセットを追加</button>
+        <!-- エクスポートボタン -->
+        <button @click="exportCardSetsAsJson" class="styled-button export">カードセットをJSONとしてエクスポート</button>
       </div>
 
       <ul>
@@ -468,5 +499,9 @@ textarea:focus {
   border-color: #007bff; /* Change border color on focus */
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2); /* Light shadow for focus effect */
 }
-
+  
+.export {
+  background: none;
+  background-color: #13f08d; 
+}
 </style>
