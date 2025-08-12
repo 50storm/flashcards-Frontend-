@@ -1,11 +1,29 @@
 <script setup>
 import { ref, onMounted, watchEffect } from 'vue';
+import { v4 as uuidv4 } from 'uuid'; // Import uuid for generating unique IDs
 
 // 状態管理
+const userId = ref(''); // ユーザーID関連
 const cardSets = ref([]); // カードセットのリスト
 const currentSetIndex = ref(null); // 選択中のカードセットのインデックス
 const currentCardIndex = ref(0); // 表示中のカードのインデックス
 const isFlipped = ref(false); // 現在のカードが裏返し状態かどうか
+
+// ユーザーIDを生成または取得
+const generateUserId = () => {
+  return uuidv4(); // uuidを使ってユニークなIDを生成
+};
+
+// ユーザーIDを取得
+const getUserId = () => {
+  let storedUserId = localStorage.getItem('userId');
+  if (!storedUserId) {
+    storedUserId = generateUserId(); // ユーザーIDがなければ新しく生成
+    localStorage.setItem('userId', storedUserId); // 新しいユーザーIDをlocalStorageに保存
+  }
+  return storedUserId;
+};
+
 
 // 新しいカードセット作成用
 const newCardSetName = ref('');
@@ -29,14 +47,32 @@ const defaultCardSet = {
 };
 
 // ローカルストレージからカードセットをロード
+// ローカルストレージからカードセットをロード
 const loadCardSets = () => {
   const savedCardSets = localStorage.getItem('cardSets');
   if (savedCardSets) {
-    cardSets.value = JSON.parse(savedCardSets);
+    const parsedCardSets = JSON.parse(savedCardSets);
+
+    // 各カードセットに現在のuserIdがリンクされていない場合は設定
+    parsedCardSets.forEach((set) => {
+      if (!set.userId) {
+        set.userId = userId.value; // 現在のユーザーIDを設定
+      }
+    });
+
+    cardSets.value = parsedCardSets;
   } else {
     // 初回ロード時にデフォルトのカードセットを追加
-    cardSets.value.push(defaultCardSet);
-    saveCardSets();
+    const newDefaultCardSet = {
+      name: 'ビジネス英会話',
+      cards: [
+        { japanese: 'お世話になっております', english: 'Thank you for your continued support' },
+        { japanese: 'よろしくお願いします', english: 'I look forward to working with you' }
+      ],
+      userId: userId.value, // userIdを設定
+    };
+    cardSets.value.push(newDefaultCardSet);
+    saveCardSets(); // 保存
   }
 };
 
@@ -49,7 +85,11 @@ const saveCardSets = () => {
 const addCardSet = () => {
   if (newCardSetName.value.trim()) {
     const newSetIndex = cardSets.value.length;
-    cardSets.value.push({ name: newCardSetName.value, cards: [] });
+    cardSets.value.push({
+      name: newCardSetName.value,
+      cards: [],
+      userId: userId.value
+     });
     newCardSetName.value = '';
     saveCardSets();
     playCardSet(newSetIndex); // 新しいカードセットを自動的に選択
@@ -183,6 +223,7 @@ const exportCardSetsAsJson = () => {
 // 初期化
 onMounted(() => {
   try {
+    userId.value = getUserId(); // ユーザーIDを取得
     loadCardSets();
   } catch (error) {
     console.error('カードセットのロード中にエラーが発生しました:', error);
@@ -197,10 +238,12 @@ watchEffect(() => {
 
 <template>
   <div class="container">
+
     <!-- カードセット一覧画面 -->
     <div v-if="currentSetIndex === null">
       <header class="header">
         <h1>カードセット一覧</h1>
+        <p>ユーザーID: {{ userId }}</p>
       </header>
 
       <div class="form">
