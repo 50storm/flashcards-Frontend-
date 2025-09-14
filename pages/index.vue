@@ -1,4 +1,5 @@
 <script setup lang="ts">
+
 import { ref, onMounted, watchEffect } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -6,20 +7,44 @@ import { v4 as uuidv4 } from 'uuid'
 const isLoggedIn = ref(false)
 const loginEmail = ref('')
 const loginPassword = ref('')
+const config = useRuntimeConfig()
 
-const handleLogin = () => {
-  // TODO: 後で /login API に置き換え
-  if (loginEmail.value && loginPassword.value) {
+const handleLogin = async () => {
+  try {
+    const data = await $fetch('/login', {
+      baseURL: config.public.apiBase, // '/api'
+      method: 'POST',
+      credentials: 'include',         // Cookie 同送（セッション系なら必須）
+      headers: { 'Content-Type': 'application/json' },
+      body: { email: loginEmail.value, password: loginPassword.value },
+      onResponseError(ctx) {
+        console.error('Login error detail:', {
+          status: ctx.response.status,
+          data: ctx.response._data,   // ← ここにバックエンドの理由が出るはず
+        })
+      }
+    })
+
+    const me = await $fetch('/me', {
+      baseURL: config.public.apiBase,
+      credentials: 'include'
+    })
+    console.log('me:', me)
     isLoggedIn.value = true
-  } else {
-    alert('メールとパスワードを入力してください')
+  } catch (err: any) {
+    console.error('ログインエラー:', err?.data ?? err)
+    alert(err?.data?.error || 'ログインに失敗しました')
   }
 }
-const logout = () => {
+
+const logout = async () => {
+  try {
+    await $fetch('/logout', { method: 'POST' })
+  } catch {}
   isLoggedIn.value = false
   loginPassword.value = ''
-  // 必要なら email も消す: loginEmail.value = ''
 }
+
 
 /* ===== カードセット関連 ===== */
 interface Card { japanese: string; english: string }
