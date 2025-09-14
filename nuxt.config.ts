@@ -1,5 +1,16 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2024-11-01',
-  devtools: { enabled: true }
+  nitro: {
+    devProxy: {
+      '/api/': {
+        target: 'http://localhost:8080', // バックエンド
+        changeOrigin: true
+      }
+    }
+  },
+
+  runtimeConfig: {
+    public: { apiBase: '/api' }
+  },
+
+  compatibilityDate: '2025-09-15'
 })
