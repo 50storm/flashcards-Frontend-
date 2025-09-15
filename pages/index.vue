@@ -1,18 +1,17 @@
 <script setup lang="ts">
-// (変更なし)
 import { ref, onMounted, watchEffect } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 
-/* ===== JWT 認証に変更 ===== */
+/* ===== JWT 認証 ===== */
 const isLoggedIn = ref(false)
 const loginEmail = ref('')
 const loginPassword = ref('')
 const config = useRuntimeConfig()
 
-// 1. ログイン処理: JWTをlocalStorageに保存
+// ログイン
 const handleLogin = async () => {
   try {
-    const response = await $fetch('/auth/login', {
+    const response: any = await $fetch('/auth/login', {
       baseURL: config.public.apiBase,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -25,67 +24,55 @@ const handleLogin = async () => {
       }
     })
 
-    // ログイン成功: アクセストークンをlocalStorageに保存
-    if (response.ok) {
+    if (response?.ok) {
       localStorage.setItem('access_token', response.access_token)
       isLoggedIn.value = true
+      const me = await fetchUser()
+      if (me) loginEmail.value = me.email
+      await loadCardSets()
     }
-    
-    // ユーザー情報を取得
-    const me = await fetchUser()
-    if (me) {
-      console.log('me:', me)
-    }
-
   } catch (err: any) {
     console.error('ログインエラー:', err?.data ?? err)
     alert(err?.data?.error || 'ログインに失敗しました')
   }
 }
 
-// 2. ログアウト処理: localStorageからJWTを削除
+// ログアウト
 const logout = () => {
   localStorage.removeItem('access_token')
   isLoggedIn.value = false
   loginPassword.value = ''
-  // ログアウト後の初期化が必要な場合、ここに追記
 }
 
-// 3. 認証済みAPIリクエストを行うためのヘルパー関数
+// 認証付きフェッチ
 const fetchWithAuth = async (url: string, options: any = {}) => {
   const token = localStorage.getItem('access_token')
-  if (!token) {
-    console.error('アクセストークンがありません。')
-    isLoggedIn.value = false
-    throw new Error('Not Authenticated')
-  }
+  if (!token) throw new Error('Not Authenticated')
 
-  // Authorization ヘッダーにトークンを追加
   const headers = {
-    ...options.headers,
-    'Authorization': `Bearer ${token}`
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+    'Authorization': `Bearer ${token}`,
   }
 
-  // fetchをbaseURL付きで実行し、認証失敗ならログアウト処理
   const res = await $fetch(url, {
     baseURL: config.public.apiBase,
     ...options,
     headers,
     onResponseError(ctx) {
       if (ctx.response.status === 401) {
-        console.error('認証エラー: トークンが無効です。')
+        console.error('認証エラー: トークンが無効です')
         logout()
       }
     }
   })
-
   return res
 }
 
-// 4. ユーザー情報を取得する関数 (認証が必要)
+// ユーザー情報取得
 const fetchUser = async () => {
   try {
-    const data = await fetchWithAuth('/api/me')
+    const data = await fetchWithAuth('/api/me', { method: 'GET' })
     if (data.ok) {
       return data.user
     }
@@ -95,33 +82,36 @@ const fetchUser = async () => {
   return null
 }
 
-
-/* ===== カードセット関連（変更なし） ===== */
-interface Card { japanese: string; english: string }
+/* ===== 型 ===== */
+interface ApiCard { id: number; front: string; back: string }
+interface Card   { japanese: string; english: string; _id?: number }
 interface CardSet { name: string; cards: Card[]; userId: string }
+const toUi = (a: ApiCard): Card => ({ _id: a.id, japanese: a.front, english: a.back })
 
+/* ===== 状態 ===== */
 const userId = ref<string>('')
 const cardSets = ref<CardSet[]>([])
 const currentSetIndex = ref<number | null>(null)
 const currentCardIndex = ref(0)
 const isFlipped = ref(false)
 
-const newCardSetName = ref<string>('')
-const newJapanese = ref<string>('')
-const newEnglish = ref<string>('')
+const newCardSetName = ref('')
+const newJapanese = ref('')
+const newEnglish = ref('')
 
 const editingCardIndex = ref<number | null>(null)
-const editJapanese = ref<string>('')
-const editEnglish = ref<string>('')
+const editJapanese = ref('')
+const editEnglish = ref('')
 
+/* ===== ユーティリティ ===== */
 const generateUserId = (): string => uuidv4()
 const getUserId = (): string => {
-  let storedUserId = localStorage.getItem('userId')
-  if (!storedUserId) {
-    storedUserId = generateUserId()
-    localStorage.setItem('userId', storedUserId)
+  let stored = localStorage.getItem('userId')
+  if (!stored) {
+    stored = generateUserId()
+    localStorage.setItem('userId', stored)
   }
-  return storedUserId
+  return stored
 }
 
 const defaultCardSet: CardSet = {
@@ -133,10 +123,19 @@ const defaultCardSet: CardSet = {
   userId: ''
 }
 
-const loadCardSets = () => {
-  const savedCardSets = localStorage.getItem('cardSets')
-  if (savedCardSets) {
-    const parsed: CardSet[] = JSON.parse(savedCardSets)
+/* ===== サーバ ⇔ UI ===== */
+const loadServerCards = async () => {
+  const list = await fetchWithAuth('/api/flash-cards', { method: 'GET' }) as ApiCard[]
+  const ui = (list || []).map(toUi)
+  cardSets.value = [{ name: 'My Cards (Server)', cards: ui, userId: userId.value }]
+  if (currentSetIndex.value === null) currentSetIndex.value = 0
+}
+
+/* ===== localStorage 操作 ===== */
+const loadLocalCardSets = () => {
+  const saved = localStorage.getItem('cardSets')
+  if (saved) {
+    const parsed: CardSet[] = JSON.parse(saved)
     parsed.forEach(set => { if (!set.userId) set.userId = userId.value })
     cardSets.value = parsed
   } else {
@@ -146,96 +145,116 @@ const loadCardSets = () => {
 }
 const saveCardSets = () => localStorage.setItem('cardSets', JSON.stringify(cardSets.value))
 
-const addCardSet = () => {
-  if (!newCardSetName.value.trim()) return alert('カードセット名を入力してください！')
-  const newIndex = cardSets.value.length
-  cardSets.value.push({ name: newCardSetName.value.trim(), cards: [], userId: userId.value })
-  newCardSetName.value = ''
-  saveCardSets()
-  playCardSet(newIndex)
+/* ===== 共通ロード ===== */
+const loadCardSets = async () => {
+  if (isLoggedIn.value) {
+    await loadServerCards()
+  } else {
+    loadLocalCardSets()
+  }
 }
-const deleteCardSet = (index: number) => {
-  if (!confirm('このカードセットを削除してもよろしいですか？')) return
-  cardSets.value.splice(index, 1)
-  saveCardSets()
-}
-const addNewCard = () => {
+
+/* ===== カード操作 ===== */
+const addNewCard = async () => {
   if (!(newJapanese.value.trim() && newEnglish.value.trim())) return alert('日本語と英語の両方を入力してください！')
-  cardSets.value[currentSetIndex.value!].cards.push({
-    japanese: newJapanese.value.trim(),
-    english: newEnglish.value.trim()
-  })
+  if (isLoggedIn.value) {
+    const created: any = await fetchWithAuth('/api/flash-cards', {
+      method: 'POST',
+      body: { front: newJapanese.value.trim(), back: newEnglish.value.trim() }
+    })
+    if (created?.ok && created.card) {
+      cardSets.value[0].cards.unshift(toUi(created.card))
+    }
+  } else {
+    cardSets.value[currentSetIndex.value!].cards.push({
+      japanese: newJapanese.value.trim(),
+      english: newEnglish.value.trim()
+    })
+    saveCardSets()
+  }
   newJapanese.value = ''
   newEnglish.value = ''
-  saveCardSets()
 }
-const deleteCard = (index: number) => {
+
+const deleteCard = async (index: number) => {
   if (!confirm('このカードを削除してもよろしいですか？')) return
-  cardSets.value[currentSetIndex.value!].cards.splice(index, 1)
-  saveCardSets()
+  const setIdx = currentSetIndex.value ?? 0
+  const c = cardSets.value[setIdx].cards[index]
+  if (isLoggedIn.value) {
+    if (typeof c._id !== 'number') return alert('カードIDが不明')
+    await fetchWithAuth(`/api/flash-cards/${c._id}`, { method: 'DELETE' })
+    cardSets.value[setIdx].cards.splice(index, 1)
+  } else {
+    cardSets.value[setIdx].cards.splice(index, 1)
+    saveCardSets()
+  }
 }
+
 const startEditCard = (index: number) => {
   editingCardIndex.value = index
-  const c = cardSets.value[currentSetIndex.value!].cards[index]
+  const setIdx = currentSetIndex.value ?? 0
+  const c = cardSets.value[setIdx].cards[index]
   editJapanese.value = c.japanese
   editEnglish.value = c.english
 }
-const saveEditCard = () => {
-  if (!(editJapanese.value.trim() && editEnglish.value.trim()) || editingCardIndex.value === null)
-    return alert('日本語と英語の両方を入力してください！')
-  const c = cardSets.value[currentSetIndex.value!].cards[editingCardIndex.value]
-  c.japanese = editJapanese.value.trim()
-  c.english  = editEnglish.value.trim()
-  editingCardIndex.value = null
-  saveCardSets()
-}
-const cancelEdit = () => { editingCardIndex.value = null }
 
+const saveEditCard = async () => {
+  if (!(editJapanese.value.trim() && editEnglish.value.trim()) || editingCardIndex.value === null) return
+  const setIdx = currentSetIndex.value ?? 0
+  const c = cardSets.value[setIdx].cards[editingCardIndex.value]
+  if (isLoggedIn.value) {
+    if (typeof c._id !== 'number') return
+    const updated: any = await fetchWithAuth(`/api/flash-cards/${c._id}`, {
+      method: 'PATCH',
+      body: { front: editJapanese.value.trim(), back: editEnglish.value.trim() }
+    })
+    if (updated?.ok && updated.card) {
+      const u = toUi(updated.card)
+      c.japanese = u.japanese
+      c.english  = u.english
+    }
+  } else {
+    c.japanese = editJapanese.value.trim()
+    c.english  = editEnglish.value.trim()
+    saveCardSets()
+  }
+  editingCardIndex.value = null
+}
+
+/* ===== ナビゲーション ===== */
 const playCardSet = (index: number) => { currentSetIndex.value = index; currentCardIndex.value = 0; isFlipped.value = false }
 const backToList   = () => { currentSetIndex.value = null }
 const nextCard = () => {
   isFlipped.value = false
   const cards = cardSets.value[currentSetIndex.value!].cards
-  currentCardIndex.value = (currentCardIndex.value + 1) % cards.length
+  if (cards.length) currentCardIndex.value = (currentCardIndex.value + 1) % cards.length
 }
 const prevCard = () => {
   isFlipped.value = false
   const cards = cardSets.value[currentSetIndex.value!].cards
-  currentCardIndex.value = (currentCardIndex.value - 1 + cards.length) % cards.length
+  if (cards.length) currentCardIndex.value = (currentCardIndex.value - 1 + cards.length) % cards.length
 }
 const flipCard = () => { isFlipped.value = !isFlipped.value }
 
-const exportCardSetsAsJson = () => {
-  const data = JSON.stringify(cardSets.value, null, 2)
-  const blob = new Blob([data], { type: 'application/json' })
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = 'cardSets.json'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
-
+/* ===== 初期化 ===== */
 onMounted(async () => {
-  try {
-    // ページロード時にユーザー情報を取得して認証状態をチェック
+  const token = localStorage.getItem('access_token')
+  if (token) {
     const user = await fetchUser()
     if (user) {
       isLoggedIn.value = true
       loginEmail.value = user.email
     }
-
-    userId.value = getUserId()
-    loadCardSets()
-  } catch (e) {
-    console.error('カードセットのロード中にエラーが発生しました:', e)
   }
+  userId.value = getUserId()
+  await loadCardSets()
 })
-watchEffect(() => { console.log('現在のカードセット:', cardSets.value) })
+watchEffect(() => console.log('カードセット:', cardSets.value))
 </script>
 
 <template>
   <div class="container">
+    <!-- ===== ログイン前 ===== -->
     <div v-if="!isLoggedIn" class="login-container">
       <div class="login-card">
         <h1>ログイン</h1>
@@ -253,6 +272,7 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
       </div>
     </div>
 
+    <!-- ===== ログイン後 ===== -->
     <div v-else>
       <header class="header">
         <h1>カードセット一覧</h1>
@@ -264,6 +284,7 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
 
       <p class="uid">ユーザーID: {{ userId }}</p>
 
+      <!-- ===== 一覧表示 ===== -->
       <div v-if="currentSetIndex === null">
         <div class="form">
           <input v-model="newCardSetName" class="card-set-name-input" placeholder="新しいカードセット名" />
@@ -294,6 +315,7 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
         </ul>
       </div>
 
+      <!-- ===== カード表示中 ===== -->
       <div v-else>
         <div class="card-top-actions">
           <button @click="backToList" class="btn-ghost">一覧に戻る</button>
@@ -302,19 +324,32 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
         <div class="card-container">
           <button @click="prevCard" class="navigation-button prev styled-button">前へ</button>
           <div class="card" @click="flipCard">
-            <p v-if="!isFlipped">{{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.japanese }}</p>
-            <p v-else>{{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.english }}</p>
+            <p v-if="!isFlipped">
+              {{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.japanese }}
+            </p>
+            <p v-else>
+              {{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.english }}
+            </p>
           </div>
           <button @click="nextCard" class="navigation-button next styled-button">次へ</button>
         </div>
 
+        <!-- 編集モード or 新規追加 -->
         <div class="form">
-          <div>
+          <div v-if="editingCardIndex !== null">
+            <textarea v-model="editJapanese" placeholder="日本語"></textarea>
+            <textarea v-model="editEnglish" placeholder="英語"></textarea>
+            <div class="button-group">
+              <button @click="saveEditCard" class="styled-button">保存</button>
+              <button @click="cancelEdit" class="btn-ghost">キャンセル</button>
+            </div>
+          </div>
+          <div v-else>
             <textarea v-model="newJapanese" placeholder="日本語"></textarea>
             <textarea v-model="newEnglish" placeholder="英語"></textarea>
-          </div>
-          <div>
-            <button @click="addNewCard" class="styled-button">カードを追加</button>
+            <div>
+              <button @click="addNewCard" class="styled-button">カードを追加</button>
+            </div>
           </div>
         </div>
       </div>

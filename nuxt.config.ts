@@ -1,16 +1,9 @@
 export default defineNuxtConfig({
-  nitro: {
-    devProxy: {
-      '/api/': {
-        target: 'http://localhost:8080', // バックエンド
-        changeOrigin: true
-      }
+  runtimeConfig: {
+    public: {
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080'
     }
   },
 
-  runtimeConfig: {
-    public: { apiBase: '/api' }
-  },
-
-  compatibilityDate: '2025-09-15'
+  compatibilityDate: '2025-09-16'
 })
