@@ -1,52 +1,102 @@
 <script setup lang="ts">
-
+// (変更なし)
 import { ref, onMounted, watchEffect } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 
-/* ===== ログインUI（UIだけ。APIは未接続） ===== */
+/* ===== JWT 認証に変更 ===== */
 const isLoggedIn = ref(false)
 const loginEmail = ref('')
 const loginPassword = ref('')
 const config = useRuntimeConfig()
 
+// 1. ログイン処理: JWTをlocalStorageに保存
 const handleLogin = async () => {
   try {
-    const data = await $fetch('/login', {
-      baseURL: config.public.apiBase, // '/api'
+    const response = await $fetch('/auth/login', {
+      baseURL: config.public.apiBase,
       method: 'POST',
-      credentials: 'include',         // Cookie 同送（セッション系なら必須）
       headers: { 'Content-Type': 'application/json' },
       body: { email: loginEmail.value, password: loginPassword.value },
       onResponseError(ctx) {
         console.error('Login error detail:', {
           status: ctx.response.status,
-          data: ctx.response._data,   // ← ここにバックエンドの理由が出るはず
+          data: ctx.response._data,
         })
       }
     })
 
-    const me = await $fetch('/me', {
-      baseURL: config.public.apiBase,
-      credentials: 'include'
-    })
-    console.log('me:', me)
-    isLoggedIn.value = true
+    // ログイン成功: アクセストークンをlocalStorageに保存
+    if (response.ok) {
+      localStorage.setItem('access_token', response.access_token)
+      isLoggedIn.value = true
+    }
+    
+    // ユーザー情報を取得
+    const me = await fetchUser()
+    if (me) {
+      console.log('me:', me)
+    }
+
   } catch (err: any) {
     console.error('ログインエラー:', err?.data ?? err)
     alert(err?.data?.error || 'ログインに失敗しました')
   }
 }
 
-const logout = async () => {
-  try {
-    await $fetch('/logout', { method: 'POST' })
-  } catch {}
+// 2. ログアウト処理: localStorageからJWTを削除
+const logout = () => {
+  localStorage.removeItem('access_token')
   isLoggedIn.value = false
   loginPassword.value = ''
+  // ログアウト後の初期化が必要な場合、ここに追記
+}
+
+// 3. 認証済みAPIリクエストを行うためのヘルパー関数
+const fetchWithAuth = async (url: string, options: any = {}) => {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    console.error('アクセストークンがありません。')
+    isLoggedIn.value = false
+    throw new Error('Not Authenticated')
+  }
+
+  // Authorization ヘッダーにトークンを追加
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`
+  }
+
+  // fetchをbaseURL付きで実行し、認証失敗ならログアウト処理
+  const res = await $fetch(url, {
+    baseURL: config.public.apiBase,
+    ...options,
+    headers,
+    onResponseError(ctx) {
+      if (ctx.response.status === 401) {
+        console.error('認証エラー: トークンが無効です。')
+        logout()
+      }
+    }
+  })
+
+  return res
+}
+
+// 4. ユーザー情報を取得する関数 (認証が必要)
+const fetchUser = async () => {
+  try {
+    const data = await fetchWithAuth('/api/me')
+    if (data.ok) {
+      return data.user
+    }
+  } catch (err: any) {
+    console.error('ユーザー情報取得エラー:', err)
+  }
+  return null
 }
 
 
-/* ===== カードセット関連 ===== */
+/* ===== カードセット関連（変更なし） ===== */
 interface Card { japanese: string; english: string }
 interface CardSet { name: string; cards: Card[]; userId: string }
 
@@ -166,8 +216,15 @@ const exportCardSetsAsJson = () => {
   document.body.removeChild(link)
 }
 
-onMounted(() => {
+onMounted(async () => {
   try {
+    // ページロード時にユーザー情報を取得して認証状態をチェック
+    const user = await fetchUser()
+    if (user) {
+      isLoggedIn.value = true
+      loginEmail.value = user.email
+    }
+
     userId.value = getUserId()
     loadCardSets()
   } catch (e) {
@@ -179,7 +236,6 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
 
 <template>
   <div class="container">
-    <!-- 未ログイン：フォームだけ表示 -->
     <div v-if="!isLoggedIn" class="login-container">
       <div class="login-card">
         <h1>ログイン</h1>
@@ -197,9 +253,7 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
       </div>
     </div>
 
-    <!-- ログイン済み：共通ヘッダー + コンテンツ -->
     <div v-else>
-      <!-- 共通ヘッダー（左：タイトル / 右：ログイン表示＆ログアウト） -->
       <header class="header">
         <h1>カードセット一覧</h1>
         <div class="login-status">
@@ -208,10 +262,8 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
         </div>
       </header>
 
-      <!-- 任意表示 -->
       <p class="uid">ユーザーID: {{ userId }}</p>
 
-      <!-- 一覧 or プレイ -->
       <div v-if="currentSetIndex === null">
         <div class="form">
           <input v-model="newCardSetName" class="card-set-name-input" placeholder="新しいカードセット名" />
@@ -271,6 +323,7 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
 </template>
 
 <style scoped>
+/* (変更なし) */
 /* ページ幅と左右余白を統一 */
 .container {
   max-width: 960px;
