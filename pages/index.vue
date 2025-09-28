@@ -1,258 +1,70 @@
 <script setup lang="ts">
-// (変更なし)
-import { ref, onMounted, watchEffect } from 'vue'
-import { v4 as uuidv4 } from 'uuid'
+import { ref, onMounted } from 'vue'
+import { useAuth } from '~/composables/useAuth'
+import { useCards } from '~/composables/useCards'
 
-/* ===== JWT 認証に変更 ===== */
-const isLoggedIn = ref(false)
-const loginEmail = ref('')
+/* ===== Composables ===== */
+const { isLoggedIn, loginEmail, handleLogin, logout } = useAuth()
+const { 
+  cardSets, currentSetIndex, currentCardIndex, isFlipped,
+  editingCardIndex, editJapanese, editEnglish,
+  loadServerCards, addNewCard, deleteCard,
+  startEditCard, saveEditCard, cancelEdit,
+  playCardSet, backToList, nextCard, prevCard, flipCard
+} = useCards()
+
+/* ===== ローカル状態 ===== */
 const loginPassword = ref('')
-const config = useRuntimeConfig()
+const newCardSetName = ref('')
+const newJapanese = ref('')
+const newEnglish = ref('')
 
-// 1. ログイン処理: JWTをlocalStorageに保存
-const handleLogin = async () => {
-  try {
-    const response = await $fetch('/auth/login', {
-      baseURL: config.public.apiBase,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: { email: loginEmail.value, password: loginPassword.value },
-      onResponseError(ctx) {
-        console.error('Login error detail:', {
-          status: ctx.response.status,
-          data: ctx.response._data,
-        })
-      }
-    })
-
-    // ログイン成功: アクセストークンをlocalStorageに保存
-    if (response.ok) {
-      localStorage.setItem('access_token', response.access_token)
-      isLoggedIn.value = true
-    }
-    
-    // ユーザー情報を取得
-    const me = await fetchUser()
-    if (me) {
-      console.log('me:', me)
-    }
-
-  } catch (err: any) {
-    console.error('ログインエラー:', err?.data ?? err)
-    alert(err?.data?.error || 'ログインに失敗しました')
-  }
-}
-
-// 2. ログアウト処理: localStorageからJWTを削除
-const logout = () => {
-  localStorage.removeItem('access_token')
-  isLoggedIn.value = false
-  loginPassword.value = ''
-  // ログアウト後の初期化が必要な場合、ここに追記
-}
-
-// 3. 認証済みAPIリクエストを行うためのヘルパー関数
-const fetchWithAuth = async (url: string, options: any = {}) => {
-  const token = localStorage.getItem('access_token')
-  if (!token) {
-    console.error('アクセストークンがありません。')
-    isLoggedIn.value = false
-    throw new Error('Not Authenticated')
-  }
-
-  // Authorization ヘッダーにトークンを追加
-  const headers = {
-    ...options.headers,
-    'Authorization': `Bearer ${token}`
-  }
-
-  // fetchをbaseURL付きで実行し、認証失敗ならログアウト処理
-  const res = await $fetch(url, {
-    baseURL: config.public.apiBase,
-    ...options,
-    headers,
-    onResponseError(ctx) {
-      if (ctx.response.status === 401) {
-        console.error('認証エラー: トークンが無効です。')
-        logout()
-      }
-    }
-  })
-
-  return res
-}
-
-// 4. ユーザー情報を取得する関数 (認証が必要)
-const fetchUser = async () => {
-  try {
-    const data = await fetchWithAuth('/api/me')
-    if (data.ok) {
-      return data.user
-    }
-  } catch (err: any) {
-    console.error('ユーザー情報取得エラー:', err)
-  }
-  return null
-}
-
-
-/* ===== カードセット関連（変更なし） ===== */
-interface Card { japanese: string; english: string }
-interface CardSet { name: string; cards: Card[]; userId: string }
-
-const userId = ref<string>('')
-const cardSets = ref<CardSet[]>([])
-const currentSetIndex = ref<number | null>(null)
-const currentCardIndex = ref(0)
-const isFlipped = ref(false)
-
-const newCardSetName = ref<string>('')
-const newJapanese = ref<string>('')
-const newEnglish = ref<string>('')
-
-const editingCardIndex = ref<number | null>(null)
-const editJapanese = ref<string>('')
-const editEnglish = ref<string>('')
-
-const generateUserId = (): string => uuidv4()
-const getUserId = (): string => {
-  let storedUserId = localStorage.getItem('userId')
-  if (!storedUserId) {
-    storedUserId = generateUserId()
-    localStorage.setItem('userId', storedUserId)
-  }
-  return storedUserId
-}
-
-const defaultCardSet: CardSet = {
-  name: 'ビジネス英会話',
-  cards: [
-    { japanese: 'お世話になっております', english: 'Thank you for your continued support' },
-    { japanese: 'よろしくお願いします', english: 'I look forward to working with you' }
-  ],
-  userId: ''
-}
-
-const loadCardSets = () => {
-  const savedCardSets = localStorage.getItem('cardSets')
-  if (savedCardSets) {
-    const parsed: CardSet[] = JSON.parse(savedCardSets)
-    parsed.forEach(set => { if (!set.userId) set.userId = userId.value })
-    cardSets.value = parsed
-  } else {
-    cardSets.value.push({ ...defaultCardSet, userId: userId.value })
-    saveCardSets()
-  }
-}
-const saveCardSets = () => localStorage.setItem('cardSets', JSON.stringify(cardSets.value))
-
-const addCardSet = () => {
-  if (!newCardSetName.value.trim()) return alert('カードセット名を入力してください！')
-  const newIndex = cardSets.value.length
-  cardSets.value.push({ name: newCardSetName.value.trim(), cards: [], userId: userId.value })
-  newCardSetName.value = ''
-  saveCardSets()
-  playCardSet(newIndex)
-}
-const deleteCardSet = (index: number) => {
-  if (!confirm('このカードセットを削除してもよろしいですか？')) return
-  cardSets.value.splice(index, 1)
-  saveCardSets()
-}
-const addNewCard = () => {
-  if (!(newJapanese.value.trim() && newEnglish.value.trim())) return alert('日本語と英語の両方を入力してください！')
-  cardSets.value[currentSetIndex.value!].cards.push({
-    japanese: newJapanese.value.trim(),
-    english: newEnglish.value.trim()
-  })
-  newJapanese.value = ''
-  newEnglish.value = ''
-  saveCardSets()
-}
-const deleteCard = (index: number) => {
-  if (!confirm('このカードを削除してもよろしいですか？')) return
-  cardSets.value[currentSetIndex.value!].cards.splice(index, 1)
-  saveCardSets()
-}
-const startEditCard = (index: number) => {
-  editingCardIndex.value = index
-  const c = cardSets.value[currentSetIndex.value!].cards[index]
-  editJapanese.value = c.japanese
-  editEnglish.value = c.english
-}
-const saveEditCard = () => {
-  if (!(editJapanese.value.trim() && editEnglish.value.trim()) || editingCardIndex.value === null)
-    return alert('日本語と英語の両方を入力してください！')
-  const c = cardSets.value[currentSetIndex.value!].cards[editingCardIndex.value]
-  c.japanese = editJapanese.value.trim()
-  c.english  = editEnglish.value.trim()
-  editingCardIndex.value = null
-  saveCardSets()
-}
-const cancelEdit = () => { editingCardIndex.value = null }
-
-const playCardSet = (index: number) => { currentSetIndex.value = index; currentCardIndex.value = 0; isFlipped.value = false }
-const backToList   = () => { currentSetIndex.value = null }
-const nextCard = () => {
-  isFlipped.value = false
-  const cards = cardSets.value[currentSetIndex.value!].cards
-  currentCardIndex.value = (currentCardIndex.value + 1) % cards.length
-}
-const prevCard = () => {
-  isFlipped.value = false
-  const cards = cardSets.value[currentSetIndex.value!].cards
-  currentCardIndex.value = (currentCardIndex.value - 1 + cards.length) % cards.length
-}
-const flipCard = () => { isFlipped.value = !isFlipped.value }
-
-const exportCardSetsAsJson = () => {
-  const data = JSON.stringify(cardSets.value, null, 2)
-  const blob = new Blob([data], { type: 'application/json' })
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = 'cardSets.json'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
-
+/* ===== 初期化 ===== */
 onMounted(async () => {
-  try {
-    // ページロード時にユーザー情報を取得して認証状態をチェック
-    const user = await fetchUser()
-    if (user) {
-      isLoggedIn.value = true
-      loginEmail.value = user.email
-    }
-
-    userId.value = getUserId()
-    loadCardSets()
-  } catch (e) {
-    console.error('カードセットのロード中にエラーが発生しました:', e)
+  if (isLoggedIn.value) {
+    await loadServerCards()
   }
 })
-watchEffect(() => { console.log('現在のカードセット:', cardSets.value) })
+
+/* ===== UIラッパー関数 ===== */
+const onLogin = async () => {
+  const res = await handleLogin(loginPassword.value)
+  if (res?.ok) {
+    await loadServerCards()
+  }
+}
+
+const onAddNewCard = async () => {
+  if (!(newJapanese.value.trim() && newEnglish.value.trim())) {
+    return alert('日本語と英語を入力してください')
+  }
+  await addNewCard(newJapanese.value.trim(), newEnglish.value.trim())
+  newJapanese.value = ''
+  newEnglish.value = ''
+}
 </script>
 
 <template>
   <div class="container">
+    <!-- ===== ログイン前 ===== -->
     <div v-if="!isLoggedIn" class="login-container">
       <div class="login-card">
         <h1>ログイン</h1>
-        <form @submit.prevent="handleLogin">
+        <form @submit.prevent="onLogin">
           <div class="form-group">
             <label for="email">メールアドレス</label>
-            <input id="email" type="email" v-model="loginEmail" placeholder="you@example.com" required />
+            <input id="email" type="email" v-model="loginEmail" required />
           </div>
           <div class="form-group">
             <label for="password">パスワード</label>
-            <input id="password" type="password" v-model="loginPassword" placeholder="••••••••" required />
+            <input id="password" type="password" v-model="loginPassword" required />
           </div>
           <button type="submit">ログイン</button>
         </form>
       </div>
     </div>
 
+    <!-- ===== ログイン後 ===== -->
     <div v-else>
       <header class="header">
         <h1>カードセット一覧</h1>
@@ -262,13 +74,11 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
         </div>
       </header>
 
-      <p class="uid">ユーザーID: {{ userId }}</p>
-
+      <!-- ===== 一覧表示 ===== -->
       <div v-if="currentSetIndex === null">
         <div class="form">
           <input v-model="newCardSetName" class="card-set-name-input" placeholder="新しいカードセット名" />
-          <button @click="addCardSet" class="styled-button">カードセットを追加</button>
-          <button @click="exportCardSetsAsJson" class="styled-button export">カードセットをJSONとしてエクスポート</button>
+          <button class="styled-button">カードセットを追加</button>
         </div>
 
         <ul>
@@ -277,10 +87,9 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
               <h3>{{ set.name || '名前なし' }}</h3>
               <div class="button-group">
                 <button @click="playCardSet(index)" class="styled-button play">遊ぶ</button>
-                <button @click="deleteCardSet(index)" class="styled-button delete">削除</button>
+                <button class="styled-button delete">削除</button>
               </div>
             </div>
-
             <ul class="card-list">
               <li v-for="(card, cardIndex) in set.cards" :key="cardIndex" class="card-item">
                 <p>{{ card.japanese }} - {{ card.english }}</p>
@@ -294,6 +103,7 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
         </ul>
       </div>
 
+      <!-- ===== カード表示中 ===== -->
       <div v-else>
         <div class="card-top-actions">
           <button @click="backToList" class="btn-ghost">一覧に戻る</button>
@@ -302,19 +112,33 @@ watchEffect(() => { console.log('現在のカードセット:', cardSets.value) 
         <div class="card-container">
           <button @click="prevCard" class="navigation-button prev styled-button">前へ</button>
           <div class="card" @click="flipCard">
-            <p v-if="!isFlipped">{{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.japanese }}</p>
-            <p v-else>{{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.english }}</p>
+            <p v-if="!isFlipped">
+              {{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.japanese }}
+            </p>
+            <p v-else>
+              {{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.english }}
+            </p>
           </div>
           <button @click="nextCard" class="navigation-button next styled-button">次へ</button>
         </div>
 
         <div class="form">
-          <div>
+          <!-- 編集中 -->
+          <div v-if="editingCardIndex !== null">
+            <textarea v-model="editJapanese" placeholder="日本語"></textarea>
+            <textarea v-model="editEnglish" placeholder="英語"></textarea>
+            <div class="button-group">
+              <button @click="saveEditCard" class="styled-button">保存</button>
+              <button @click="cancelEdit" class="btn-ghost">キャンセル</button>
+            </div>
+          </div>
+          <!-- 新規追加 -->
+          <div v-else>
             <textarea v-model="newJapanese" placeholder="日本語"></textarea>
             <textarea v-model="newEnglish" placeholder="英語"></textarea>
-          </div>
-          <div>
-            <button @click="addNewCard" class="styled-button">カードを追加</button>
+            <div>
+              <button @click="onAddNewCard" class="styled-button">カードを追加</button>
+            </div>
           </div>
         </div>
       </div>
