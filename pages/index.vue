@@ -90,15 +90,6 @@ const onAddNewCard = async () => {
                 <button class="styled-button delete">削除</button>
               </div>
             </div>
-            <ul class="card-list">
-              <li v-for="(card, cardIndex) in set.cards" :key="cardIndex" class="card-item">
-                <p>{{ card.japanese }} - {{ card.english }}</p>
-                <div class="button-group" style="margin-top:6px">
-                  <button class="btn-ghost" @click="startEditCard(cardIndex)">編集</button>
-                  <button class="btn-ghost" @click="deleteCard(cardIndex)">削除</button>
-                </div>
-              </li>
-            </ul>
           </li>
         </ul>
       </div>
