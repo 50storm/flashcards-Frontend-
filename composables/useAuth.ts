@@ -46,8 +46,10 @@ export const useAuth = () => {
       ...options,
       headers,
       onResponseError(ctx) {
+        debugger
         if (ctx.response.status === 401) {
           console.error('認証エラー: トークンが無効です')
+          console.error()
           logout()
         }
       }

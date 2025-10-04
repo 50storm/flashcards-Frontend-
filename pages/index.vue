@@ -101,16 +101,19 @@ const onAddNewCard = async () => {
         </div>
 
         <div class="card-container">
-          <button @click="prevCard" class="navigation-button prev styled-button">前へ</button>
           <div class="card" @click="flipCard">
+            <!-- 前へ・次へボタンをカード上に重ねる -->
+            <button @click.stop="prevCard" class="navigation-button prev styled-button">前へ</button>
+
             <p v-if="!isFlipped">
               {{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.japanese }}
             </p>
             <p v-else>
               {{ cardSets[currentSetIndex]?.cards[currentCardIndex]?.english }}
             </p>
+
+            <button @click.stop="nextCard" class="navigation-button next styled-button">次へ</button>
           </div>
-          <button @click="nextCard" class="navigation-button next styled-button">次へ</button>
         </div>
 
         <div class="form">
@@ -138,8 +141,7 @@ const onAddNewCard = async () => {
 </template>
 
 <style scoped>
-/* (変更なし) */
-/* ページ幅と左右余白を統一 */
+/* ===== 共通コンテナ ===== */
 .container {
   max-width: 960px;
   margin: 24px auto;
@@ -147,7 +149,7 @@ const onAddNewCard = async () => {
   font-family: Arial, sans-serif;
 }
 
-/* 共通ヘッダー */
+/* ===== ヘッダー ===== */
 .header {
   display: flex;
   align-items: center;
@@ -171,13 +173,7 @@ const onAddNewCard = async () => {
 }
 .btn-ghost:hover { background: #f9fafb; }
 
-.uid {
-  margin: 0 0 12px;
-  color: #6b7280;
-  font-size: 13px;
-}
-
-/* ログインフォーム */
+/* ===== ログインフォーム ===== */
 .login-container {
   display: flex;
   justify-content: center;
@@ -209,7 +205,7 @@ const onAddNewCard = async () => {
 }
 .login-card button:hover { background-color: #0056b3; }
 
-/* 既存スタイル（必要箇所はそのまま） */
+/* ===== カード一覧 ===== */
 .card-set { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; text-align: left; width: 100%; }
 .card-set-header { display: flex; justify-content: space-between; align-items: center; }
 .card-list { margin-top: 10px; list-style: none; padding-left: 0; }
@@ -217,48 +213,114 @@ const onAddNewCard = async () => {
 
 .card-top-actions { display: flex; justify-content: flex-end; margin: 12px 0; }
 
-.card-container { display: flex; align-items: center; justify-content: center; position: relative; margin-top: 20px; }
+/* ===== カード表示エリア ===== */
+.card-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-top: 20px;
+}
 .card {
-  width: 300px; height: 200px; border: 1px solid #ccc; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center; text-align: center;
-  font-size: 18px; cursor: pointer; transition: transform .3s, background-color .3s;
-  background-color: #f9f9f9; box-shadow: 0 4px 8px rgba(0,0,0,.1);
+  position: relative;
+  width: 300px;
+  height: 200px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform .3s, background-color .3s;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 8px rgba(0,0,0,.1);
 }
 .card:hover { background-color: #e0e0e0; }
 
+/* ===== 前へ・次へボタン ===== */
 .navigation-button {
-  position: absolute; top: 50%; transform: translateY(-50%);
-  background-color: #6a11cb; color: white; border: none; border-radius: 5px;
-  padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: bold;
-  box-shadow: 0 4px 8px rgba(0,0,0,.2); transition: all .3s ease;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #6a11cb;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(0,0,0,.2);
+  transition: all .3s ease;
 }
-.navigation-button.prev { left: -100px; }
-.navigation-button.next { right: -100px; }
+.navigation-button.prev { left: -80px; }
+.navigation-button.next { right: -80px; }
 .navigation-button:hover { background-color: #0056b3; transform: translateY(-50%) scale(1.1); }
 
-.form { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 20px; }
+/* ===== フォームエリア ===== */
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+}
 textarea {
-  width: 250px; height: 100px; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,.1); transition: all .3s ease;
+  width: 250px;
+  height: 100px;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,.1);
+  transition: all .3s ease;
 }
 textarea:focus { outline: none; border-color: #007bff; box-shadow: 0 4px 8px rgba(0,123,255,.2); }
 
+/* ===== ボタンスタイル ===== */
 .styled-button {
-  padding: 10px 20px; font-size: 16px; font-weight: bold; color: white; text-transform: uppercase;
-  border: none; border-radius: 8px; cursor: pointer; background: linear-gradient(45deg, #6a11cb, #2575fc);
-  box-shadow: 0 4px 8px rgba(0,0,0,.2); transition: all .3s ease;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  box-shadow: 0 4px 8px rgba(0,0,0,.2);
+  transition: all .3s ease;
 }
-.styled-button:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,.3); }
-.styled-button:active { transform: translateY(0); box-shadow: 0 3px 6px rgba(0,0,0,.2); }
+.styled-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,.3);
+}
+.styled-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 6px rgba(0,0,0,.2);
+}
 .styled-button.play { background: linear-gradient(45deg, #28a745, #218838); }
 .styled-button.delete { background: linear-gradient(45deg, #dc3545, #c82333); }
 .styled-button.back { background: linear-gradient(45deg, #007bff, #0056b3); }
 
 .card-set-name-input {
-  width: 100%; max-width: 600px; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,.1); transition: all .3s ease;
+  width: 100%;
+  max-width: 600px;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,.1);
+  transition: all .3s ease;
 }
 .card-set-name-input:focus { outline: none; border-color: #007bff; box-shadow: 0 4px 8px rgba(0,123,255,.2); }
 
 .export { background: none; background-color: #13f08d; }
+.card-set-name-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 4px 8px rgba(0,123,255,.2);
+}
 </style>
