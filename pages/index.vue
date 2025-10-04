@@ -4,7 +4,7 @@ import { useAuth } from '~/composables/useAuth'
 import { useCards } from '~/composables/useCards'
 
 /* ===== Composables ===== */
-const { isLoggedIn, loginEmail, handleLogin, logout } = useAuth()
+const { isLoggedIn, loginEmail,loginName, handleLogin, logout } = useAuth()
 const { 
   cardSets, currentSetIndex, currentCardIndex, isFlipped,
   editingCardIndex, editJapanese, editEnglish,
@@ -69,7 +69,8 @@ const onAddNewCard = async () => {
       <header class="header">
         <h1>カードセット一覧</h1>
         <div class="login-status">
-          <span>✅ ログイン中: {{ loginEmail }}</span>
+        <!-- TODO ログイン名(name)に変更 -->
+          <span>✅ ログイン中: {{ loginName }}</span>
           <button @click="logout" class="btn-ghost">ログアウト</button>
         </div>
       </header>

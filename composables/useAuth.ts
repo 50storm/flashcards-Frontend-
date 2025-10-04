@@ -4,6 +4,7 @@ import { useRuntimeConfig } from '#imports'
 
 const isLoggedIn = ref(false)
 const loginEmail = ref<string>('')
+const loginName = ref('')
 
 export const useAuth = () => {
   const config = useRuntimeConfig()
@@ -17,9 +18,11 @@ export const useAuth = () => {
         password,
       },
     })
-    if (response?.ok) {
+ if (response?.ok) {
       localStorage.setItem('access_token', response.access_token)
       isLoggedIn.value = true
+      loginName.value = response.user?.name || '' // ← ★ ユーザー名を保存
+      loginEmail.value = response.user?.email || loginEmail.value // ← ★ 安全に反映
     }
     return response
   }
@@ -28,6 +31,7 @@ export const useAuth = () => {
     localStorage.removeItem('access_token')
     isLoggedIn.value = false
     loginEmail.value = ''
+    loginName.value = '' // ← ★ リセット忘れ防止
   }
 
   // ✅ これを追加
@@ -56,5 +60,5 @@ export const useAuth = () => {
     })
   }
 
-  return { isLoggedIn, loginEmail, handleLogin, logout, fetchWithAuth }
+  return { isLoggedIn, loginEmail,loginName, handleLogin, logout, fetchWithAuth }
 }
