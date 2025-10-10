@@ -8,12 +8,17 @@ const loginName = ref('')
 
 export const useAuth = () => {
   const config = useRuntimeConfig()
+  const url = `${config.public.apiBase}/auth/login`
+  console.log('🔍 Sending request to:', url)
 
   /* ===== ログイン処理 ===== */
   const handleLogin = async (password: string) => {
     const response: any = await $fetch('/auth/login', {
       baseURL: config.public.apiBase,
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: {
         email: loginEmail.value,
         password,

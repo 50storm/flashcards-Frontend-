@@ -8,10 +8,14 @@ console.log('🔧 loading env file:', envFile)
 dotenv.config({ path: envFile })
 
 export default defineNuxtConfig({
+  app: {
+    // サイトの公開URLに合わせて設定
+    baseURL: '/flashcardtest/',
+  },
   runtimeConfig: {
     public: {
       testEnv: process.env.TEST_ENV || 'default-value',
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080/fallback'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080'
     }
   },
 
