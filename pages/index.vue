@@ -4,8 +4,8 @@ import { useAuth } from '~/composables/useAuth'
 import { useCards } from '~/composables/useCards'
 
 /* ===== Composables ===== */
-const { isLoggedIn, loginEmail,loginName, handleLogin, logout } = useAuth()
-const { 
+const { isLoggedIn, loginEmail, loginName, loginError, handleLogin, logout } = useAuth()
+const {
   cardSets, currentSetIndex, currentCardIndex, isFlipped,
   editingCardIndex, editJapanese, editEnglish,
   loadServerCards, addNewCard, deleteCard,
@@ -59,6 +59,10 @@ const onAddNewCard = async () => {
             <label for="password">パスワード</label>
             <input id="password" type="password" v-model="loginPassword" required />
           </div>
+
+          <!-- 🔴 エラーメッセージ表示 -->
+          <p v-if="loginError" class="error-msg">{{ loginError }}</p>
+
           <button type="submit">ログイン</button>
         </form>
       </div>
@@ -69,7 +73,6 @@ const onAddNewCard = async () => {
       <header class="header">
         <h1>カードセット一覧</h1>
         <div class="login-status">
-        <!-- TODO ログイン名(name)に変更 -->
           <span>✅ ログイン中: {{ loginName }}</span>
           <button @click="logout" class="btn-ghost">ログアウト</button>
         </div>
@@ -103,7 +106,6 @@ const onAddNewCard = async () => {
 
         <div class="card-container">
           <div class="card" @click="flipCard">
-            <!-- 前へ・次へボタンをカード上に重ねる -->
             <button @click.stop="prevCard" class="navigation-button prev styled-button">前へ</button>
 
             <p v-if="!isFlipped">
@@ -205,6 +207,17 @@ const onAddNewCard = async () => {
   background-color: #007bff; color: #fff; cursor: pointer;
 }
 .login-card button:hover { background-color: #0056b3; }
+
+/* 🔴 エラーメッセージ */
+.error-msg {
+  color: #dc3545;
+  background: #ffeaea;
+  padding: 8px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+}
 
 /* ===== カード一覧 ===== */
 .card-set { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; text-align: left; width: 100%; }
@@ -317,11 +330,4 @@ textarea:focus { outline: none; border-color: #007bff; box-shadow: 0 4px 8px rgb
   transition: all .3s ease;
 }
 .card-set-name-input:focus { outline: none; border-color: #007bff; box-shadow: 0 4px 8px rgba(0,123,255,.2); }
-
-.export { background: none; background-color: #13f08d; }
-.card-set-name-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 4px 8px rgba(0,123,255,.2);
-}
 </style>

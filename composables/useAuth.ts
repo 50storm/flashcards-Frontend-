@@ -5,6 +5,7 @@ import { useRuntimeConfig } from '#imports'
 const isLoggedIn = ref(false)
 const loginEmail = ref<string>('')
 const loginName = ref('')
+const loginError = ref<string | null>(null) // ❗追加: エラーメッセージ格納
 
 export const useAuth = () => {
   const config = useRuntimeConfig()
@@ -13,28 +14,49 @@ export const useAuth = () => {
 
   /* ===== ログイン処理 ===== */
   const handleLogin = async (password: string) => {
-    const response: any = await $fetch('/auth/login', {
-      baseURL: config.public.apiBase,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: {
-        email: loginEmail.value,
-        password,
-      },
-    })
+    loginError.value = null // 初期化
 
-    if (response?.ok) {
-      localStorage.setItem('access_token', response.access_token)
-      localStorage.setItem('user_email', response.user?.email || loginEmail.value)
-      localStorage.setItem('user_name', response.user?.name || '')
-      isLoggedIn.value = true
-      loginName.value = response.user?.name || ''
-      loginEmail.value = response.user?.email || loginEmail.value
+    try {
+      const response: any = await $fetch('/auth/login', {
+        baseURL: config.public.apiBase,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: {
+          email: loginEmail.value,
+          password,
+        },
+      })
+
+      if (response?.ok) {
+        // ✅ 成功時の処理
+        localStorage.setItem('access_token', response.access_token)
+        localStorage.setItem('user_email', response.user?.email || loginEmail.value)
+        localStorage.setItem('user_name', response.user?.name || '')
+        isLoggedIn.value = true
+        loginName.value = response.user?.name || ''
+        loginEmail.value = response.user?.email || loginEmail.value
+        console.log('✅ ログイン成功:', response)
+      } else {
+        // ✅ Slim側が明示的に ok:false を返した場合
+        loginError.value = response?.error || 'ログインに失敗しました'
+      }
+
+      return response
+    } catch (err: any) {
+      // ❌ 通信 or 認証エラー時（401など）
+      console.error('❌ ログイン失敗:', err)
+
+      if (err?.response?.status === 401) {
+        // SlimからのJSONメッセージを拾う
+        loginError.value = err?.data?.error || 'メールアドレスまたはパスワードが違います'
+      } else {
+        loginError.value = '通信エラーが発生しました'
+      }
+
+      return null
     }
-
-    return response
   }
 
   /* ===== リロード時の状態復元 ===== */
@@ -85,6 +107,7 @@ export const useAuth = () => {
     isLoggedIn,
     loginEmail,
     loginName,
+    loginError, // ❗追加: エラーメッセージを外部でも参照できる
     handleLogin,
     logout,
     fetchWithAuth,
