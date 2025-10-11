@@ -9,5 +9,9 @@
 # .env (開発用)
 NUXT_PUBLIC_API_BASE=http://localhost:8080/flashcard
 
-# development 環境用
+# DotEnvを指定して開発環境の切り替えなど
+```
 npx nuxt dev --dotenv .env.dev
+npx nuxi generate --dotenv .env.production
+```
+
