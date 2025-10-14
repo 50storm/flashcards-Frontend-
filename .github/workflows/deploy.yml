@@ -52,11 +52,11 @@ jobs:
           REMOTE_PATH: ${{ secrets.XSERVER_REMOTE_PATH }}
         run: |
           echo "🚀 Deploying to Xserver via SFTP..."
-          sftp -i ~/.ssh/id_rsa -P ${PORT:-10022} -o StrictHostKeyChecking=no ${USER}@${HOST} <<'EOF'
-          mkdir -p ${REMOTE_PATH}
+          sftp -i ~/.ssh/id_rsa -P ${PORT:-10022} -o StrictHostKeyChecking=no ${USER}@${HOST} <<EOF
           cd ${REMOTE_PATH}
           lcd ./.output/public
           put -r *
           bye
           EOF
+
           echo "✅ Deployment complete!"
