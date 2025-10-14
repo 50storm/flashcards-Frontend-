@@ -1,4 +1,4 @@
-name: Deploy Nuxt 3 to Xserver via SSH
+name: Deploy Nuxt 3 to Xserver via SFTP
 
 on:
   push:
@@ -17,6 +17,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Cache npm dependencies
         uses: actions/cache@v4
@@ -40,26 +41,24 @@ jobs:
           chmod 700 ~/.ssh
           echo "${{ secrets.XSERVER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p 10022 -H ${{ secrets.XSERVER_HOST }} >> ~/.ssh/known_hosts || echo "Keyscan failed, skipping"
 
-      - name: SSH preflight (debug)
+      - name: Install lftp
         run: |
-          ssh -vvv \
-            -p 10022 \
-            -i ~/.ssh/id_rsa \
-            -o StrictHostKeyChecking=no \
-            -o IdentitiesOnly=yes \
-            -o PreferredAuthentications=publickey \
-            -o PubkeyAcceptedAlgorithms=+ssh-rsa \
-            -o HostKeyAlgorithms=+ssh-rsa \
-            ${{ secrets.XSERVER_USER }}@${{ secrets.XSERVER_HOST }} "echo OK && command -v rsync || echo 'NO_RSYNC'"
+          sudo apt-get update
+          sudo apt-get install -y lftp
 
-      - name: Deploy to Xserver via rsync
+      - name: Deploy via SFTP mirror (lftp)
+        env:
+          HOST: ${{ secrets.XSERVER_HOST }}
+          USER: ${{ secrets.XSERVER_USER }}
+          REMOTE_PATH: ${{ secrets.XSERVER_REMOTE_PATH }}
         run: |
-          rsync -avz --delete \
-            --exclude '.git*' \
-            --exclude 'node_modules' \
-            --exclude '.github' \
-            -e "ssh -p 10022 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-            ./.output/public/ \
-            ${{ secrets.XSERVER_USER }}@${{ secrets.XSERVER_HOST }}:${{ secrets.XSERVER_REMOTE_PATH }}/
+          # lftp は鍵認証を sftp:connect-program で指定
+          LFTP_CMD="set net:timeout 20; set net:max-retries 2; \
+            set sftp:connect-program \"ssh -a -x -i ~/.ssh/id_rsa -p 10022\"; \
+            mkdir -p ${REMOTE_PATH}; \
+            mirror -R --delete --verbose ./.output/public/ ${REMOTE_PATH}; \
+            bye"
+
+          # パスワードは不要なので -u 'USER,' として空パスワードにする
+          lftp -u "${USER}," -e "${LFTP_CMD}" sftp://${HOST}
