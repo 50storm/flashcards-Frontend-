@@ -41,6 +41,8 @@ jobs:
           chmod 700 ~/.ssh
           echo "${{ secrets.XSERVER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          touch ~/.ssh/known_hosts
+          ssh-keyscan -p 10022 -H ${{ secrets.XSERVER_HOST }} >> ~/.ssh/known_hosts || echo "keyscan skipped"
 
       - name: Install lftp
         run: |
@@ -53,12 +55,9 @@ jobs:
           USER: ${{ secrets.XSERVER_USER }}
           REMOTE_PATH: ${{ secrets.XSERVER_REMOTE_PATH }}
         run: |
-          # lftp は鍵認証を sftp:connect-program で指定
-          LFTP_CMD="set net:timeout 20; set net:max-retries 2; \
+          LFTP_CMD="set cmd:fail-exit yes; set net:timeout 20; set net:max-retries 2; \
             set sftp:connect-program \"ssh -a -x -i ~/.ssh/id_rsa -p 10022\"; \
             mkdir -p ${REMOTE_PATH}; \
             mirror -R --delete --verbose ./.output/public/ ${REMOTE_PATH}; \
             bye"
-
-          # パスワードは不要なので -u 'USER,' として空パスワードにする
           lftp -u "${USER}," -e "${LFTP_CMD}" sftp://${HOST}
