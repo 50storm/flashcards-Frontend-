@@ -3,7 +3,7 @@ name: Deploy Nuxt 3 to Xserver via SFTP
 on:
   push:
     branches:
-      - main
+      - main  # デプロイ対象ブランチ
 
 jobs:
   build-and-deploy:
@@ -44,22 +44,19 @@ jobs:
           touch ~/.ssh/known_hosts
           ssh-keyscan -p 10022 -H ${{ secrets.XSERVER_HOST }} >> ~/.ssh/known_hosts || echo "keyscan skipped"
 
-      - name: Install lftp
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y lftp
-
-      - name: Deploy via native SFTP (upload only)
+      - name: Deploy via SFTP
         env:
           HOST: ${{ secrets.XSERVER_HOST }}
           USER: ${{ secrets.XSERVER_USER }}
+          PORT: ${{ secrets.XSERVER_PORT }}
           REMOTE_PATH: ${{ secrets.XSERVER_REMOTE_PATH }}
         run: |
-          # sftp バッチで .output/public 配下を丸ごと送る
-          sftp -i ~/.ssh/id_rsa -P 10022 -o StrictHostKeyChecking=no ${USER}@${HOST} <<'EOF'
+          echo "🚀 Deploying to Xserver via SFTP..."
+          sftp -i ~/.ssh/id_rsa -P ${PORT:-10022} -o StrictHostKeyChecking=no ${USER}@${HOST} <<'EOF'
           mkdir -p ${REMOTE_PATH}
           cd ${REMOTE_PATH}
           lcd ./.output/public
           put -r *
           bye
           EOF
+          echo "✅ Deployment complete!"
