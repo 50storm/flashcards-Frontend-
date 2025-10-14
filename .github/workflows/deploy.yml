@@ -49,17 +49,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y lftp
 
-      - name: Deploy via SFTP mirror (lftp)
+      - name: Deploy via native SFTP (upload only)
         env:
-          HOST: ${{ secrets.XSERVER_HOST }}          # 例: sv13290.xserver.jp
-          USER: ${{ secrets.XSERVER_USER }}          # 例: xs225231
-          REMOTE_PATH: ${{ secrets.XSERVER_REMOTE_PATH }}  # 例: /home/xs225231/xs225231.xsrv.jp/public_html/flashcardtest
+          HOST: ${{ secrets.XSERVER_HOST }}
+          USER: ${{ secrets.XSERVER_USER }}
+          REMOTE_PATH: ${{ secrets.XSERVER_REMOTE_PATH }}
         run: |
-          sudo apt-get update && sudo apt-get install -y lftp
-          LFTP_CMD="set cmd:fail-exit yes; set net:timeout 30; set net:max-retries 2; \
-            set sftp:auto-confirm yes; \
-            set sftp:connect-program \"ssh -a -x -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p 10022 -l ${USER} ${HOST} -s sftp\"; \
-            mkdir -p ${REMOTE_PATH}; \
-            mirror -R --delete --verbose --parallel=2 ./.output/public/ ${REMOTE_PATH}; \
-            bye"
-          lftp -u "${USER}," -e "${LFTP_CMD}" sftp://${HOST}
+          # sftp バッチで .output/public 配下を丸ごと送る
+          sftp -i ~/.ssh/id_rsa -P 10022 -o StrictHostKeyChecking=no ${USER}@${HOST} <<'EOF'
+          mkdir -p ${REMOTE_PATH}
+          cd ${REMOTE_PATH}
+          lcd ./.output/public
+          put -r *
+          bye
+          EOF
