@@ -42,6 +42,18 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p 10022 -H ${{ secrets.XSERVER_HOST }} >> ~/.ssh/known_hosts || echo "Keyscan failed, skipping"
 
+      - name: SSH preflight (debug)
+        run: |
+          ssh -vvv \
+            -p 10022 \
+            -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=no \
+            -o IdentitiesOnly=yes \
+            -o PreferredAuthentications=publickey \
+            -o PubkeyAcceptedAlgorithms=+ssh-rsa \
+            -o HostKeyAlgorithms=+ssh-rsa \
+            ${{ secrets.XSERVER_USER }}@${{ secrets.XSERVER_HOST }} "echo OK && command -v rsync || echo 'NO_RSYNC'"
+
       - name: Deploy to Xserver via rsync
         run: |
           rsync -avz --delete \
