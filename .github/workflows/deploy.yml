@@ -57,9 +57,10 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y lftp
           LFTP_CMD="set cmd:fail-exit yes; set net:timeout 30; set net:max-retries 2; \
-            set sftp:connect-program \"ssh -a -x -i ~/.ssh/id_rsa -p 10022 -s sftp\"; \
             set sftp:auto-confirm yes; \
+            set sftp:connect-program \"ssh -a -x -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p 10022 -s sftp %h\"; \
             mkdir -p ${REMOTE_PATH}; \
             mirror -R --delete --verbose --parallel=2 ./.output/public/ ${REMOTE_PATH}; \
             bye"
           lftp -u "${USER}," -e "${LFTP_CMD}" sftp://${HOST}
+
