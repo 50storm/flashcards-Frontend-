@@ -28,7 +28,16 @@ export const useUserRegister = () => {
 
       if (res?.ok) {
         success.value = true
-        await handleLogin(form.password)
+
+        // JWTを保存
+        if (res.access_token) {
+          localStorage.setItem('access_token', res.access_token)
+          localStorage.setItem('token_type', res.token_type || 'Bearer')
+          localStorage.setItem('user_email', res.user?.email || form.email)
+          localStorage.setItem('user_name', res.user?.name || form.name)
+          localStorage.setItem('user_id', res.user?.id?.toString() || '')
+        }
+
         router.push('/')
       } else if (res?.errors) {
         // Laravel風エラー { errors: { field: [msg1, msg2] } }
