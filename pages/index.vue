@@ -64,6 +64,11 @@ const onAddNewCard = async () => {
           <p v-if="loginError" class="error-msg">{{ loginError }}</p>
 
           <button type="submit">ログイン</button>
+          <div class="text-center mt-3">
+            <NuxtLink to="/register" class="text-blue-600 hover:underline">
+              新規ユーザー登録はこちら
+            </NuxtLink>
+          </div>
         </form>
       </div>
     </div>
