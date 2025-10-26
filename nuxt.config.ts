@@ -10,7 +10,7 @@ dotenv.config({ path: envFile })
 export default defineNuxtConfig({
   app: {
     // サイトの公開URLに合わせて設定
-    baseURL: '/flashcardtest/',
+    baseURL: '/flashcardbackend/',
   },
   runtimeConfig: {
     public: {
